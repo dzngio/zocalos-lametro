@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Control de zócalos · La Metro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--red:#ED1C24;--ink:#0e0e0e;--panel:#171717;--line:#2a2a2a;--mute:#8a8a8a;--fg:#f3f3f3}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink);color:var(--fg);font-family:"Geist",system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+  .mono,label,.tag{font-family:"Geist Mono",ui-monospace,monospace}
+  header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--ink);z-index:5}
+  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em;text-transform:uppercase}
+  header .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #555;padding:3px 8px;color:#ccc}
+  .onair{margin-left:auto;display:flex;align-items:center;gap:8px;font:600 12px "Geist Mono";letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .onair i{width:10px;height:10px;border-radius:50%;background:#444}
+  .onair.on{color:#fff}.onair.on i{background:var(--red);box-shadow:0 0 10px var(--red);animation:p 1.2s infinite}
+  @keyframes p{50%{opacity:.4}}
+
+  .wrap{display:grid;grid-template-columns:420px 1fr;min-height:calc(100vh - 57px)}
+  .form{border-right:1px solid var(--line);padding:16px 20px 40px;overflow:auto}
+  .right{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+  section{border-top:1px solid var(--line);padding:14px 0 6px}
+  section:first-child{border-top:0;padding-top:0}
+  h2{margin:0 0 10px;font:700 11px "Geist Mono";letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
+  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:10px 0 5px}
+  input[type=text],textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:10px 12px;font:500 15px "Geist";border-radius:0;outline:none}
+  input[type=text]:focus,textarea:focus{border-color:var(--red)}
+  textarea{min-height:110px;resize:vertical;font-size:14px;line-height:1.45}
+  .row{display:flex;gap:8px}.row>*{flex:1}
+  .seg{display:flex;border:1px solid var(--line)}
+  .seg button{flex:1;background:transparent;color:var(--fg);border:0;border-left:1px solid var(--line);padding:10px 8px;font:600 13px "Geist";cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .seg button:first-child{border-left:0}
+  .seg button.on{background:#fff;color:#000}
+  .sw{width:14px;height:14px;border:1px solid #666;display:inline-block}
+  .check{display:flex;align-items:center;gap:10px;margin:10px 0;font:500 14px "Geist";color:var(--fg);text-transform:none;letter-spacing:0;cursor:pointer}
+  .check input{accent-color:var(--red);width:16px;height:16px}
+  input[type=range]{width:100%;accent-color:var(--red)}
+
+  .go{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{border:0;padding:16px;font:800 18px "Geist";letter-spacing:-.02em;text-transform:uppercase;cursor:pointer}
+  .btn.in{background:var(--red);color:#fff}.btn.out{background:#fff;color:#000}
+  .btn:active{transform:translateY(1px)}
+  .small{background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:9px 12px;font:600 12px "Geist Mono";letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+  .small:hover{border-color:#666}
+  .small.red{background:var(--red);border-color:var(--red);color:#fff}
+
+  .pv{position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid var(--line);overflow:hidden}
+  .pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .pvbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pvbar .lbl{font:600 11px "Geist Mono";letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-right:4px}
+
+  .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+  .preset{background:var(--panel);border:1px solid var(--line);padding:10px 12px;cursor:pointer;position:relative;text-align:left;color:var(--fg)}
+  .preset:hover{border-color:var(--red)}
+  .preset .t{font:800 15px "Geist";text-transform:uppercase;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:22px}
+  .preset .m{font:500 11px "Geist Mono";color:var(--mute);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+  .preset .x{position:absolute;top:6px;right:8px;color:var(--mute);font:600 14px "Geist Mono";background:none;border:0;cursor:pointer}
+  .preset .x:hover{color:var(--red)}
+  .preset .chip{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:middle;border:1px solid #555}
+  .empty{color:var(--mute);font:500 13px "Geist Mono"}
+  .help{font:400 13px/1.55 "Geist";color:#bdbdbd}
+  .help code{font-family:"Geist Mono";background:var(--panel);padding:2px 6px;color:#fff;word-break:break-all}
+  .help ol{padding-left:18px;margin:6px 0}
+  .card{border:1px solid var(--line);padding:14px 16px}
+  .card h2{margin-bottom:6px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;font:600 12px "Geist Mono";letter-spacing:.08em;text-transform:uppercase;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+  .hint{font:500 11px "Geist Mono";color:var(--mute);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Zócalos</h1><span class="tag">La Metro · Streaming</span>
+  <div class="onair" id="onair"><i></i><span>Fuera de aire</span></div>
+</header>
+
+<div class="wrap">
+  <div class="form">
+    <section>
+      <h2>Al aire</h2>
+      <div class="go">
+        <button class="btn in" id="btnIn">Entrar</button>
+        <button class="btn out" id="btnOut">Salir</button>
+      </div>
+      <label class="check"><input type="checkbox" id="auto" checked> Enviar cambios en vivo mientras escribo</label>
+      <button class="small red" id="btnSend" style="width:100%">Actualizar zócalo ↵</button>
+      <div class="hint">Atajos: Ctrl+Enter actualiza · F8 entra/sale</div>
+    </section>
+
+    <section>
+      <h2>Estilo</h2>
+      <label>Color principal</label>
+      <div class="seg" data-k="tema">
+        <button data-v="rojo"><span class="sw" style="background:#ED1C24"></span>Rojo</button>
+        <button data-v="negro"><span class="sw" style="background:#111"></span>Negro</button>
+        <button data-v="blanco"><span class="sw" style="background:#fff"></span>Blanco</button>
+      </div>
+      <label>Tipo de zócalo</label>
+      <div class="seg" data-k="modo">
+        <button data-v="titular">Titular</button>
+        <button data-v="persona">Persona</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Textos</h2>
+      <label for="kicker">Volanta (etiqueta superior)</label>
+      <input type="text" id="kicker">
+      <div id="boxTitular">
+        <label for="titular">Titular</label>
+        <input type="text" id="titular">
+      </div>
+      <div id="boxPersona">
+        <div class="row">
+          <div><label for="nombre">Nombre</label><input type="text" id="nombre"></div>
+          <div style="flex:.6"><label for="handle">Usuario</label><input type="text" id="handle"></div>
+        </div>
+        <label for="rol">Rol / descripción</label>
+        <input type="text" id="rol">
+      </div>
+      <label for="escala">Tamaño de texto <span id="escalaV" class="mono"></span></label>
+      <input type="range" id="escala" min="0.7" max="1.15" step="0.05">
+    </section>
+
+    <section>
+      <h2>QR inscripción</h2>
+      <label class="check"><input type="checkbox" id="qrOn"> Mostrar QR</label>
+      <div class="row">
+        <div><label for="qrL1">Línea chica</label><input type="text" id="qrL1"></div>
+        <div><label for="qrL2">Línea grande</label><input type="text" id="qrL2"></div>
+      </div>
+      <div class="row">
+        <div style="flex:.6"><label for="qrPie">Pie grande</label><input type="text" id="qrPie"></div>
+        <div><label for="qrPieSub">Pie chico (Enter = salto)</label><textarea id="qrPieSub" style="min-height:44px;height:44px"></textarea></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Ticker</h2>
+      <label class="check"><input type="checkbox" id="tickerOn"> Mostrar ticker</label>
+      <label class="check"><input type="checkbox" id="relojOn"> Mostrar reloj</label>
+      <label for="tickerLabel">Etiqueta</label>
+      <input type="text" id="tickerLabel">
+      <label for="ticker">Mensajes · uno por línea · "Nombre: mensaje"</label>
+      <textarea id="ticker"></textarea>
+      <label for="tickerVel">Velocidad <span id="velV" class="mono"></span></label>
+      <input type="range" id="tickerVel" min="20" max="220" step="5">
+    </section>
+  </div>
+
+  <div class="right">
+    <div class="pvbar">
+      <span class="lbl">Vista previa</span>
+      <div class="seg" id="bgSeg" style="flex:none">
+        <button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button><button data-v="check">Transparente</button>
+      </div>
+    </div>
+    <div class="pv"><iframe id="pv" src="zocalo.html?preview=1&bg=dark"></iframe></div>
+
+    <div class="card">
+      <h2>Guardados</h2>
+      <div class="pvbar" style="margin-bottom:10px">
+        <button class="small red" id="btnSave">+ Guardar zócalo actual</button>
+        <span class="hint" style="margin:0">Clic en uno para cargarlo y mandarlo al aire.</span>
+      </div>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="card help">
+      <h2>Cómo usarlo en OBS</h2>
+      <ol>
+        <li><b>Fuente</b> → Agregar <i>Navegador</i> → <span id="srcHow"></span> Tamaño <b>1920 × 1080</b>. Destildá “Apagar la fuente cuando no esté visible”.</li>
+        <li><b>Panel</b> → menú <i>Paneles → Paneles de navegador personalizados</i>, nombre “Zócalos” y como URL pegá:<br><code id="dockUrl"></code> <button class="small" id="copyDock" style="margin-top:6px">Copiar</button></li>
+        <li>Desde ese panel dentro de OBS editás, entrás y sacás el zócalo en vivo. Si cambiás algo en este navegador (fuera de OBS), no llega a OBS: usá el panel acoplado.</li>
+      </ol>
+      <div>Zócalo fijo sin panel: copiá una URL con todo el contenido actual y usala como fuente.</div>
+      <button class="small" id="copyFixed" style="margin-top:8px">Copiar URL de zócalo fijo</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const KEY = 'lametro-zocalo-state', PKEY = 'lametro-zocalo-presets';
+  const DEF = {
+    visible: false, tema: 'rojo', modo: 'titular',
+    kicker: 'En vivo desde La Metro', titular: 'Mostrá lo que hacés',
+    nombre: 'Julian Giordana', handle: '@dzn_gio', rol: 'Charla abierta · Diseño gráfico',
+    qrOn: true, qrL1: 'Escaneá e inscribite', qrL2: 'Ciclo 2027', qrPie: '-60%', qrPieSub: 'en tu\nmatrícula',
+    tickerOn: true, tickerLabel: 'Inscripciones 2027',
+    ticker: 'La Metro: Inscripciones 2027 abiertas\nMatrícula: 60% de descuento escaneando el QR\nCarreras: Diseño gráfico · Audiovisual · Fotografía',
+    tickerVel: 90, relojOn: true, escala: 1
+  };
+  const $ = id => document.getElementById(id);
+  let S; try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY)) || {}); } catch { S = Object.assign({}, DEF); }
+
+  let bc = null; try { bc = new BroadcastChannel('lametro-zocalos'); } catch {}
+  const pv = $('pv');
+
+  function send() {
+    localStorage.setItem(KEY, JSON.stringify(S));
+    if (bc) bc.postMessage({ state: S });
+    pv.contentWindow && pv.contentWindow.postMessage({ zocalo: S }, '*');
+    paint();
+  }
+  pv.addEventListener('load', () => pv.contentWindow.postMessage({ zocalo: S }, '*'));
+
+  const TEXT = ['kicker', 'titular', 'nombre', 'handle', 'rol', 'qrL1', 'qrL2', 'qrPie', 'qrPieSub', 'tickerLabel', 'ticker'];
+  const BOOL = ['qrOn', 'tickerOn', 'relojOn'];
+  const NUM = ['tickerVel', 'escala'];
+
+  function fill() {
+    TEXT.forEach(k => $(k).value = S[k]);
+    BOOL.forEach(k => $(k).checked = !!S[k]);
+    NUM.forEach(k => $(k).value = S[k]);
+    paint();
+  }
+  function paint() {
+    document.querySelectorAll('.seg[data-k]').forEach(seg =>
+      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === S[seg.dataset.k])));
+    $('boxTitular').style.display = S.modo === 'titular' ? '' : 'none';
+    $('boxPersona').style.display = S.modo === 'persona' ? '' : 'none';
+    $('velV').textContent = S.tickerVel + ' px/s';
+    $('escalaV').textContent = Math.round(S.escala * 100) + '%';
+    const oa = $('onair'); oa.classList.toggle('on', !!S.visible);
+    oa.querySelector('span').textContent = S.visible ? 'Al aire' : 'Fuera de aire';
+  }
+
+  let t = null;
+  const live = () => { clearTimeout(t); if ($('auto').checked) t = setTimeout(send, 350); };
+  TEXT.forEach(k => $(k).addEventListener('input', () => { S[k] = $(k).value; live(); }));
+  BOOL.forEach(k => $(k).addEventListener('change', () => { S[k] = $(k).checked; send(); }));
+  NUM.forEach(k => $(k).addEventListener('input', () => { S[k] = parseFloat($(k).value); paint(); live(); }));
+  ['kicker', 'titular', 'nombre', 'handle', 'rol', 'qrL1', 'qrL2', 'qrPie', 'tickerLabel'].forEach(k =>
+    $(k).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }));
+
+  document.querySelectorAll('.seg[data-k]').forEach(seg => seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S[seg.dataset.k] = b.dataset.v; send();
+  }));
+
+  $('btnIn').onclick = () => { S.visible = true; send(); };
+  $('btnOut').onclick = () => { S.visible = false; send(); };
+  $('btnSend').onclick = send;
+  addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); }
+    if (e.key === 'F8') { e.preventDefault(); S.visible = !S.visible; send(); }
+  });
+
+  /* vista previa: fondo */
+  $('bgSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    $('bgSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    const body = pv.contentDocument && pv.contentDocument.body;
+    if (body) { body.classList.remove('bg-dark', 'bg-light', 'bg-check'); body.classList.add('bg-' + b.dataset.v); }
+  });
+
+  /* guardados */
+  const loadP = () => { try { return JSON.parse(localStorage.getItem(PKEY)) || []; } catch { return []; } };
+  const saveP = p => localStorage.setItem(PKEY, JSON.stringify(p));
+  const SW = { rojo: '#ED1C24', negro: '#111', blanco: '#fff' };
+  function drawPresets() {
+    const p = loadP(), box = $('presets');
+    if (!p.length) { box.innerHTML = '<div class="empty">Todavía no guardaste ninguno.</div>'; return; }
+    box.innerHTML = '';
+    p.forEach((it, i) => {
+      const el = document.createElement('div'); el.className = 'preset';
+      const title = it.modo === 'persona' ? it.nombre : it.titular;
+      el.innerHTML = `<div class="t"></div><div class="m"><span class="chip" style="background:${SW[it.tema]}"></span>${it.modo} · ${it.tema}</div><button class="x" title="Borrar">×</button>`;
+      el.querySelector('.t').textContent = title;
+      el.onclick = e => {
+        if (e.target.classList.contains('x')) { const q = loadP(); q.splice(i, 1); saveP(q); drawPresets(); return; }
+        S = Object.assign({}, S, it, { visible: true }); fill(); send(); toast('Al aire: ' + title);
+      };
+      box.appendChild(el);
+    });
+  }
+  $('btnSave').onclick = () => {
+    const keep = ['tema', 'modo', 'kicker', 'titular', 'nombre', 'handle', 'rol', 'escala'];
+    const it = {}; keep.forEach(k => it[k] = S[k]);
+    const p = loadP(); p.push(it); saveP(p); drawPresets(); toast('Guardado');
+  };
+
+  /* OBS */
+  const base = location.href.split('?')[0].split('#')[0].replace(/control\.html$/i, '');
+  $('dockUrl').textContent = base + 'control.html';
+  if (location.protocol === 'file:') {
+    $('srcHow').innerHTML = 'tildá <i>Archivo local</i> y elegí <code>zocalo.html</code>.';
+  } else {
+    $('srcHow').innerHTML = 'dejá <i>Archivo local</i> destildado y en URL pegá:<br><code></code> <button class="small" id="copySrc" style="margin-top:6px">Copiar</button><br>';
+    $('srcHow').querySelector('code').textContent = base + 'zocalo.html';
+  }
+  const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('Copiado'), () => prompt('Copiá esta URL:', txt));
+  $('copyDock').onclick = () => copy(base + 'control.html');
+  if ($('copySrc')) $('copySrc').onclick = () => copy(base + 'zocalo.html');
+  $('copyFixed').onclick = () => {
+    const q = new URLSearchParams();
+    Object.keys(DEF).forEach(k => {
+      const v = S[k];
+      q.set(k, typeof v === 'boolean' ? (k === 'visible' ? '1' : (v ? '1' : '0')) : k === 'ticker' ? String(v).split('\n').join('|') : v);
+    });
+    copy(base + 'zocalo.html?' + q.toString());
+  };
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1600); }
+
+  fill(); drawPresets();
+  localStorage.setItem(KEY, JSON.stringify(S));
+})();
+</script>
+</body>
+</html>
