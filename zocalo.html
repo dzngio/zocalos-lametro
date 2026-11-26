@@ -51,7 +51,7 @@
   #stage[data-tema="blanco"] .main,#stage[data-tema="blanco"] .qr{box-shadow:0 0 0 1px rgba(0,0,0,.06),0 10px 34px rgba(0,0,0,.14)}
 
   /* ---------- LAYOUT ---------- */
-  .z{position:absolute;left:96px;right:96px;bottom:60px;display:flex;align-items:flex-end;gap:var(--gut);visibility:hidden}
+  .z{position:absolute;left:96px;width:1728px;bottom:60px;transform-origin:0 100%;display:flex;align-items:flex-end;gap:var(--gut);visibility:hidden}
   .z *{box-sizing:border-box}
 
   /* QR */
@@ -187,7 +187,8 @@
     ticker: 'La Metro: Inscripciones 2027 abiertas\nMatrícula: 60% de descuento escaneando el QR\nCarreras: Diseño gráfico · Audiovisual · Fotografía',
     tickerVel: 90,
     relojOn: true,
-    escala: 1
+    escala: 1,
+    zoom: 1                  // tamaño de todo el zócalo: 1 = 100 %, 0.8 = 80 %
   };
 
   const $ = id => document.getElementById(id);
@@ -352,7 +353,16 @@
 
   /* ---------- render ---------- */
   let busy = Promise.resolve();
+  // Tamaño general: escala todo el zócalo desde la esquina inferior izquierda (queda dentro de Title Safe)
+  // y compensa el ancho para que siga ocupando el ancho seguro completo.
+  function applyZoom() {
+    const zm = Math.min(1, Math.max(0.6, parseFloat(S.zoom) || 1));
+    z.style.width = (1728 / zm) + 'px';
+    z.style.transform = zm === 1 ? '' : `scale(${zm})`;
+  }
+
   function render(prev) {
+    applyZoom();
     stage.dataset.tema = S.tema;
     $('kickTxt').textContent = S.kicker;
     $('kick').classList.toggle('empty', !S.kicker);
@@ -366,7 +376,7 @@
 
     const textChanged = !prev || prev.modo !== S.modo || prev.titular !== S.titular || prev.nombre !== S.nombre
       || prev.handle !== S.handle || prev.rol !== S.rol || prev.escala !== S.escala;
-    const layoutChanged = !prev || prev.qrOn !== S.qrOn || prev.tickerLabel !== S.tickerLabel || prev.relojOn !== S.relojOn;
+    const layoutChanged = !prev || prev.qrOn !== S.qrOn || prev.tickerLabel !== S.tickerLabel || prev.relojOn !== S.relojOn || prev.zoom !== S.zoom;
 
     if (!prev || prev.ticker !== S.ticker || layoutChanged || prev.tickerOn !== S.tickerOn) buildTicker();
 
