@@ -161,7 +161,13 @@
 
 <script>
 (() => {
-  const KEY = 'lametro-zocalo-state', BEAT = 'lametro-zocalo-beat';
+  const KEY = 'lametro-zocalo-state', BEAT = 'lametro-zocalo-beat', AKEY = 'lametro-zocalo-api';
+
+  // URL del Web App de Google Apps Script (sincronización en red).
+  // Prioridad: ?api=... en la URL → esta constante → la URL guardada en este navegador por el panel.
+  // Vacía = solo modo local (panel acoplado en el mismo OBS).
+  const DEFAULT_API_URL = '';
+  const POLL_MS = 1500;
   const DEF = {
     visible: true,
     tema: 'rojo',            // rojo | negro | blanco
@@ -413,8 +419,43 @@
   addEventListener('message', e => { if (e.data && e.data.zocalo) update(e.data.zocalo); });
   addEventListener('keydown', e => { if (e.code === 'Space' || e.key === 'F8') update({ visible: !shown }); });
 
+  /* ---------- sincronización en red (Google Apps Script) ---------- */
+  const API = (() => {
+    if (params.get('api')) return params.get('api');
+    if (DEFAULT_API_URL) return DEFAULT_API_URL;
+    try { return localStorage.getItem(AKEY) || ''; } catch { return ''; }
+  })();
+  const useApi = !!API && !isPreview && !fixed;
+  let started = false, remoteVersion = null, pollDelay = POLL_MS;
+
+  async function pollOnce() {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const u = API + (API.includes('?') ? '&' : '?') + `t=${Date.now()}&src=obs&id=${ID}&shown=${shown ? 1 : 0}`;
+      const r = await fetch(u, { cache: 'no-store', redirect: 'follow', signal: ctl.signal });
+      const j = await r.json();
+      // Solo se toca el DOM si cambió la versión: no hay parpadeos ni animaciones repetidas.
+      if (j && j.ok && j.state && j.versionId !== remoteVersion) {
+        remoteVersion = j.versionId;
+        if (started) update(j.state);
+        else { S = Object.assign({}, S, j.state); stage.dataset.modo = S.modo; }
+      }
+      pollDelay = POLL_MS;
+    } catch (e) {
+      pollDelay = Math.min(pollDelay * 2, 10000);   // sin red: reintenta más espaciado y mantiene lo último en pantalla
+    } finally { clearTimeout(to); }
+  }
+  async function pollLoop() { await pollOnce(); setTimeout(pollLoop, pollDelay); }
+
   stage.dataset.modo = S.modo;
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(() => { render(null); beat(); }, 150));
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(async () => {
+    // Con red: espera el primer estado de la nube (máx. 4 s) para no mostrar uno viejo guardado en este navegador.
+    if (useApi) await Promise.race([pollOnce(), new Promise(r => setTimeout(r, 4000))]);
+    setTimeout(() => {
+      started = true; render(null); beat();
+      if (useApi) setTimeout(pollLoop, pollDelay);
+    }, 150);
+  });
 })();
 </script>
 </body>

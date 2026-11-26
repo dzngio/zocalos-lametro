@@ -54,6 +54,26 @@
   .sync.ok{color:var(--fg2)}
   .sync.wait i{border-color:var(--warn);background:var(--warn);animation:blink 1s steps(1) infinite}
   @keyframes blink{50%{opacity:.2}}
+  .net{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+  .net i{width:8px;height:8px;border:1.5px solid var(--dim);flex:none}
+  .net.ok{color:var(--fg2)}.net.ok i{background:var(--fg);border-color:var(--fg)}
+  .net.sending{color:var(--warn)}.net.sending i{background:var(--warn);border-color:var(--warn);animation:blink .6s steps(1) infinite}
+  .net.error{color:var(--red)}.net.error i{background:var(--red);border-color:var(--red)}
+  .gear{width:34px;height:34px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--line);color:var(--mute);padding:0;transition:color .2s,border-color .2s}
+  .gear:hover{color:var(--fg);border-color:var(--line2)}
+  .gear svg{width:16px;height:16px;fill:currentColor}
+  dialog.cfg{width:min(560px,calc(100vw - 32px));background:var(--s1);color:var(--fg);border:1px solid var(--line2);padding:0}
+  dialog.cfg::backdrop{background:rgba(0,0,0,.65)}
+  .cfg-h{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .cfg-h h2{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .cfg-h button{background:none;border:0;color:var(--mute);font:500 20px/1 var(--mono);padding:4px}
+  .cfg-b{padding:18px 20px}
+  .cfg-b p{margin:0 0 14px;color:var(--fg2);font-size:13px;line-height:1.5}
+  .cfg-b .box input{font-family:var(--mono);font-size:12.5px}
+  .cfg-res{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:12px;min-height:16px;line-height:1.45}
+  .cfg-res.ok{color:var(--fg2)}.cfg-res.err{color:var(--red)}
+  .cfg-f{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .cfg-f .spacer{flex:1}
   .tc{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums;color:var(--fg)}
 
   /* ================= LAYOUT ================= */
@@ -242,8 +262,10 @@
   </div>
 
   <div class="right-meta">
+    <div class="net" id="net" title="Estado del envío a la nube (Google Apps Script)"><i></i><span id="netTxt">Modo local</span></div>
     <div class="sync" id="sync" title="Para controlar OBS, abrí este panel como panel acoplado dentro de OBS."><i></i><span id="syncTxt">Buscando OBS</span></div>
     <div class="tc" id="tc">00:00:00</div>
+    <button class="gear" id="btnCfg" aria-label="Configurar sincronización en red" title="Sincronización en red"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.3 1l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.3 2.3-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.3 2.3-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4H8.7l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.3-2.3 1.8-1.6a6 6 0 010-1.9L2.9 5.8l1.3-2.3 2.3.8c.5-.4 1.1-.7 1.7-.9L8.7 1zM10 7a3 3 0 100 6 3 3 0 000-6z"/></svg></button>
   </div>
 </header>
 
@@ -402,11 +424,35 @@
     </div>
   </main>
 </div>
+<dialog class="cfg" id="cfgDlg">
+  <div class="cfg-h"><h2>Sincronización en red</h2><button id="cfgClose" aria-label="Cerrar">×</button></div>
+  <div class="cfg-b">
+    <p>Pegá la URL del Web App de Google Apps Script para controlar el zócalo desde otra computadora o el celular. Sin URL, el panel funciona solo acoplado en el mismo OBS.</p>
+    <div class="field"><div class="fh"><label for="cfgUrl">URL del Web App</label></div>
+      <div class="box"><input type="url" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"></div></div>
+    <div class="field"><div class="fh"><label for="cfgToken">Clave de escritura (opcional, la misma que TOKEN en Code.gs)</label></div>
+      <div class="box"><input type="password" id="cfgToken" autocomplete="off"></div></div>
+    <div class="cfg-res" id="cfgRes"></div>
+  </div>
+  <div class="cfg-f">
+    <button class="btn" id="cfgTest">Probar conexión</button>
+    <button class="btn" id="cfgClear">Usar solo modo local</button>
+    <span class="spacer"></span>
+    <button class="btn solid" id="cfgSave">Guardar</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 (() => {
   const KEY = 'lametro-zocalo-state', PKEY = 'lametro-zocalo-presets', BEAT = 'lametro-zocalo-beat';
+  const AKEY = 'lametro-zocalo-api', TKEY = 'lametro-zocalo-token';
+  // URL del Web App por defecto (opcional). Si la completás acá, todos los paneles y fuentes la usan sin configurar nada.
+  const DEFAULT_API_URL = '';
+  const NET_DEBOUNCE = 600, STATUS_POLL = 4000;
+  let apiUrl = localStorage.getItem(AKEY) || DEFAULT_API_URL;
+  let token = localStorage.getItem(TKEY) || '';
+  let netT = null;
   const DEF = {
     visible: false, tema: 'rojo', modo: 'titular',
     kicker: 'En vivo desde La Metro', titular: 'Mostrá lo que hacés',
@@ -424,18 +470,25 @@
 
   /* ================= ENVÍO ================= */
   let liveSince = S.visible ? Date.now() : null;
-  function send() {
+  // Local: mismo navegador / panel acoplado en OBS + vista previa.
+  function sendLocal() {
     localStorage.setItem(KEY, JSON.stringify(S));
     if (bc) bc.postMessage({ state: S });
     pv.contentWindow && pv.contentWindow.postMessage({ zocalo: S }, '*');
     paint();
+  }
+  // Envío completo: local inmediato + nube inmediata (cancela cualquier envío en espera).
+  function send(accion = 'ACTUALIZAR') {
+    sendLocal();
+    clearTimeout(netT); netT = null;
+    pushState(accion);
   }
   pv.addEventListener('load', () => { pv.contentWindow.postMessage({ zocalo: S }, '*'); applyBg(); });
 
   function setVisible(v) {
     if (v && !S.visible) liveSince = Date.now();
     if (!v) liveSince = null;
-    S.visible = v; send();
+    S.visible = v; send(v ? 'ENTRAR' : 'SALIR');
   }
 
   const TEXT = ['kicker', 'titular', 'nombre', 'handle', 'rol', 'qrL1', 'qrL2', 'qrPie', 'qrPieSub', 'tickerLabel', 'ticker'];
@@ -530,7 +583,14 @@
   }
 
   let t = null;
-  const live = () => { clearTimeout(t); if ($('auto').checked) t = setTimeout(send, 300); };
+  // Escribiendo con "Cambios en vivo": la vista previa y OBS local se actualizan rápido,
+  // la nube espera 600 ms sin teclas para no gastar cuota de Apps Script.
+  const live = () => {
+    clearTimeout(t); clearTimeout(netT); netT = null;
+    if (!$('auto').checked) return;
+    t = setTimeout(sendLocal, 250);
+    if (apiUrl) netT = setTimeout(() => { netT = null; pushState('ACTUALIZAR'); }, NET_DEBOUNCE);
+  };
   TEXT.forEach(k => $(k).addEventListener('input', () => {
     S[k] = $(k).value; checkField(k);
     if (k === 'handle') checkField('nombre');
@@ -588,9 +648,10 @@
   function firePreset(it) {
     const next = {}; PFIELDS.forEach(k => { if (it[k] !== undefined) next[k] = it[k]; });
     Object.assign(S, next);
+    const wasLive = S.visible;
     if (!S.visible) liveSince = Date.now();
     S.visible = true;
-    fill(); send(); toast('Al aire: ' + titleOf(it));
+    fill(); send(wasLive ? 'ACTUALIZAR' : 'ENTRAR'); toast('Al aire: ' + titleOf(it));
   }
   function drawPresets() {
     const p = loadP(), box = $('presets');
@@ -652,18 +713,19 @@
 
   /* ================= OBS: URLs ================= */
   const base = location.href.split('?')[0].split('#')[0].replace(/(control|index)\.html$/i, '');
-  const srcUrl = base + 'zocalo.html';
+  const srcBase = base + 'zocalo.html';
+  // Si la URL de Apps Script no es la de por defecto, viaja en ?api= para que OBS la conozca.
+  const obsUrl = () => (apiUrl && apiUrl !== DEFAULT_API_URL) ? srcBase + '?api=' + encodeURIComponent(apiUrl) : srcBase;
   $('dockUrl').textContent = base + 'control.html';
   const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('URL copiada'), () => prompt('Copiá esta URL:', txt));
   $('copyDock').onclick = () => copy(base + 'control.html');
-  $('copySrc2').onclick = () => copy(srcUrl);
-  $('copySrc2').title = srcUrl;
+  $('copySrc2').onclick = () => copy(obsUrl());
   if (location.protocol === 'file:') {
     $('srcHow').innerHTML = 'tildá <i>Archivo local</i> y elegí <code>zocalo.html</code>.';
   } else {
     $('srcHow').innerHTML = 'dejá <i>Archivo local</i> destildado y en URL pegá:<br><code></code><br><button class="btn" id="copySrc">Copiar URL de la fuente</button><br>';
-    $('srcHow').querySelector('code').textContent = srcUrl;
-    $('copySrc').onclick = () => copy(srcUrl);
+    $('srcHow').querySelector('code').id = 'srcCode';
+    $('copySrc').onclick = () => copy(obsUrl());
   }
   $('copyFixed').onclick = () => {
     const q = new URLSearchParams();
@@ -671,7 +733,7 @@
       const v = S[k];
       q.set(k, typeof v === 'boolean' ? (k === 'visible' ? '1' : (v ? '1' : '0')) : k === 'ticker' ? String(v).split('\n').join('|') : v);
     });
-    copy(srcUrl + '?' + q.toString());
+    copy(srcBase + '?' + q.toString());
   };
 
   /* ================= SINCRONIZACIÓN CON OBS ================= */
@@ -692,6 +754,109 @@
   }
   if (bc) bc.postMessage({ ping: true });
 
+  /* ================= SINCRONIZACIÓN EN RED (Google Apps Script) ================= */
+  let sendSeq = 0, inflight = 0, lastVersion = 0, retryT = null;
+
+  function setNet(state, detail) {
+    const el = $('net');
+    el.className = 'net ' + state;
+    $('netTxt').textContent = { local: 'Modo local', sending: 'Enviando…', ok: 'Sincronizado ✓', error: 'Error de red ⚠' }[state];
+    el.title = detail || (state === 'local' ? 'Sin URL de Apps Script: solo funciona acoplado en el mismo OBS' : '');
+  }
+  function refreshUrls() {
+    const c = $('srcCode'); if (c) c.textContent = obsUrl();
+    $('copySrc2').title = obsUrl();
+  }
+  function fetchT(url, opts, ms = 10000) {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), ms);
+    return fetch(url, Object.assign({ redirect: 'follow', cache: 'no-store', signal: ctl.signal }, opts)).finally(() => clearTimeout(to));
+  }
+  const getUrl = (u, src) => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + '&src=' + src;
+
+  // POST con text/plain: no dispara preflight CORS en Apps Script.
+  async function pushState(accion, intento = 0) {
+    if (!apiUrl) return;
+    const seq = ++sendSeq; inflight++;
+    clearTimeout(retryT);
+    setNet('sending');
+    try {
+      const r = await fetchT(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion, state: S, token, origen: 'panel' })
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'Respuesta inválida');
+      if (j.versionId > lastVersion) lastVersion = j.versionId;
+      if (seq === sendSeq) setNet('ok', 'Versión ' + j.versionId + ' guardada a las ' + new Date().toLocaleTimeString());
+    } catch (err) {
+      if (seq === sendSeq) {
+        const motivo = err.name === 'AbortError' ? 'Sin respuesta en 10 s' : err.message;
+        // Reintenta hasta 3 veces con el estado más reciente, salvo que haya salido otro envío.
+        if (intento < 3) {
+          setNet('error', motivo + '. Reintento en 3 s.');
+          retryT = setTimeout(() => { if (seq === sendSeq) pushState(accion, intento + 1); }, 3000);
+        } else setNet('error', motivo + '. No se pudo enviar: tocá Actualizar para reintentar.');
+      }
+    } finally { inflight--; }
+  }
+
+  // Cada 4 s: trae el latido de OBS (indicador) y adopta cambios hechos desde otro panel.
+  async function pullStatus(first) {
+    if (!apiUrl) return;
+    try {
+      const j = await (await fetchT(getUrl(apiUrl, 'panel'), {}, 8000)).json();
+      if (!j.ok) throw new Error(j.error || 'Respuesta inválida');
+      if (j.obs && j.obs.t) onBeat({ id: j.obs.id, shown: j.obs.shown, t: Date.now() - (j.now - j.obs.t) });
+      const busyLocal = netT || inflight || typing();
+      if (j.state && j.versionId > lastVersion && !busyLocal) {
+        lastVersion = j.versionId;
+        if (JSON.stringify(j.state) !== JSON.stringify(S)) {
+          if (j.state.visible && !S.visible) liveSince = Date.now();
+          if (!j.state.visible) liveSince = null;
+          S = Object.assign({}, DEF, j.state);
+          fill(); sendLocal();
+          if (!first) toast('Cambio recibido de otro panel');
+        }
+      }
+      if (first || $('net').classList.contains('error')) setNet('ok', 'Conectado. Versión ' + j.versionId);
+    } catch (err) {
+      if (!inflight) setNet('error', 'No se pudo leer la nube: ' + err.message);
+    }
+  }
+  setInterval(() => pullStatus(false), STATUS_POLL);
+
+  /* ---- Configuración (engranaje) ---- */
+  const dlg = $('cfgDlg');
+  $('btnCfg').onclick = () => {
+    $('cfgUrl').value = apiUrl; $('cfgToken').value = token;
+    $('cfgRes').textContent = ''; $('cfgRes').className = 'cfg-res'; dlg.showModal();
+  };
+  $('cfgClose').onclick = () => dlg.close();
+  $('cfgTest').onclick = async () => {
+    const u = $('cfgUrl').value.trim(), res = $('cfgRes');
+    if (!/^https?:\/\//.test(u)) { res.className = 'cfg-res err'; res.textContent = 'Pegá la URL completa del Web App: https://script.google.com/macros/s/…/exec'; return; }
+    res.className = 'cfg-res'; res.textContent = 'Probando…';
+    try {
+      const j = await (await fetchT(getUrl(u, 'panel'), {}, 10000)).json();
+      if (!j.ok) throw new Error(j.error || 'respuesta inválida');
+      const obs = j.obs && (j.now - j.obs.t) < 8000 ? 'OBS conectado' : 'OBS todavía no se conectó';
+      res.className = 'cfg-res ok'; res.textContent = `Conexión correcta. Versión ${j.versionId}. ${obs}.`;
+    } catch (err) {
+      res.className = 'cfg-res err';
+      res.textContent = 'No responde. Revisá que el Web App esté publicado con acceso "Cualquier usuario" y que la URL termine en /exec. (' + err.message + ')';
+    }
+  };
+  $('cfgClear').onclick = () => { $('cfgUrl').value = ''; $('cfgSave').click(); };
+  $('cfgSave').onclick = () => {
+    apiUrl = $('cfgUrl').value.trim(); token = $('cfgToken').value;
+    if (apiUrl) localStorage.setItem(AKEY, apiUrl); else localStorage.removeItem(AKEY);
+    if (token) localStorage.setItem(TKEY, token); else localStorage.removeItem(TKEY);
+    dlg.close(); refreshUrls();
+    if (apiUrl) { setNet('sending'); pullStatus(true).then(() => toast('Sincronización en red activada')); }
+    else { setNet('local'); toast('Modo local'); }
+  };
+
   /* ================= RELOJES ================= */
   const pad = n => String(n).padStart(2, '0');
   function clocks() {
@@ -708,6 +873,8 @@
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1700); }
 
   fill(); drawPresets(); clocks();
+  refreshUrls();
+  if (apiUrl) { setNet('sending'); pullStatus(true); } else setNet('local');
   localStorage.setItem(KEY, JSON.stringify(S));
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { checkField('titular'); checkField('nombre'); });
 })();
