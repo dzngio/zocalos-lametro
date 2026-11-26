@@ -74,6 +74,28 @@
   .cfg-res.ok{color:var(--fg2)}.cfg-res.err{color:var(--red)}
   .cfg-f{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
   .cfg-f .spacer{flex:1}
+  dialog.guide{width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+  dialog.guide[open]{display:flex;flex-direction:column}
+  .guide .cfg-h,.guide .cfg-f{flex:none}
+  .guide .cfg-b{padding:6px 20px 18px;overflow-y:auto;min-height:0}
+  .g-intro{margin:12px 0 4px;color:var(--fg2);font-size:13.5px;line-height:1.55}
+  .g-steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  .g-steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:0 14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .g-steps li:last-child{border-bottom:0}
+  .g-steps li::before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line2);
+    font:600 13px var(--mono);color:var(--fg)}
+  .g-steps h3{margin:2px 0 4px;font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+  .g-steps p{margin:0;color:var(--mute);font-size:13px;line-height:1.55}
+  .g-steps p b{color:var(--fg2);font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 7px;border:1px solid var(--line2);font:600 11px var(--mono);color:var(--fg2);vertical-align:1px;white-space:nowrap}
+  .chip.red{background:var(--red);border-color:var(--red);color:#fff}
+  .chip i{width:6px;height:6px;background:var(--fg)}
+  .keysmap{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 18px;margin-top:6px;padding:14px;background:var(--bg);border:1px solid var(--line)}
+  .keysmap div{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--mute)}
+  .keysmap kbd{opacity:1;color:var(--fg);border-color:var(--line2);min-width:22px;text-align:center;padding:3px 6px}
+  .guide .cfg-f{align-items:center}
+  .guide .sw{font-size:12.5px;color:var(--mute)}
+  .gear.help-btn{font:700 15px/1 var(--mono)}
   .tc{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums;color:var(--fg)}
 
   /* ================= LAYOUT ================= */
@@ -265,6 +287,7 @@
     <div class="net" id="net" title="Estado del envío a la nube (Google Apps Script)"><i></i><span id="netTxt">Modo local</span></div>
     <div class="sync" id="sync" title="Para controlar OBS, abrí este panel como panel acoplado dentro de OBS."><i></i><span id="syncTxt">Buscando OBS</span></div>
     <div class="tc" id="tc">00:00:00</div>
+    <button class="gear help-btn" id="btnHelp" aria-label="Cómo usar el panel" title="Cómo usar el panel">?</button>
     <button class="gear" id="btnCfg" aria-label="Configurar sincronización en red" title="Sincronización en red"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.3 1l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.3 2.3-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.3 2.3-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4H8.7l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.3-2.3 1.8-1.6a6 6 0 010-1.9L2.9 5.8l1.3-2.3 2.3.8c.5-.4 1.1-.7 1.7-.9L8.7 1zM10 7a3 3 0 100 6 3 3 0 000-6z"/></svg></button>
   </div>
 </header>
@@ -424,6 +447,34 @@
     </div>
   </main>
 </div>
+<dialog class="cfg guide" id="helpDlg" aria-labelledby="helpTitle">
+  <div class="cfg-h"><h2 id="helpTitle">Cómo usar el panel de zócalos</h2><button id="helpClose" aria-label="Cerrar">×</button></div>
+  <div class="cfg-b">
+    <p class="g-intro">Desde acá armás el zócalo y lo mandás a OBS. La vista previa de la derecha muestra siempre lo que estás por mandar.</p>
+    <ol class="g-steps">
+      <li><div><h3>Conectá OBS</h3>
+        <p>En la PC del stream agregá una fuente <b>Navegador</b> de 1920 × 1080 con la URL de <b>Copiar URL para OBS</b>. Si vas a operar desde otra computadora o el celular, configurá la red en el <b>engranaje</b>. Si no, acoplá este panel dentro de OBS (instrucciones al pie del panel).</p></div></li>
+      <li><div><h3>Armá el zócalo</h3>
+        <p>Elegí color y tipo (<b>Titular</b> o <b>Persona</b>) y escribí los textos. La barrita debajo del titular te avisa si el texto se achica o pasa a dos líneas. La × de cada campo lo borra.</p></div></li>
+      <li><div><h3>Salí al aire</h3>
+        <p>Tocá <b>Entrar</b> para mostrarlo y <b>Salir</b> para sacarlo. La tecla que queda hundida es el estado actual. Los <b>Rápidos</b> cargan un zócalo guardado y lo sacan al aire con un clic; para crear uno, ponele nombre y tocá <b>Guardar actual</b>.</p></div></li>
+      <li><div><h3>Confirmá que llegó</h3>
+        <p>Arriba se prende <span class="chip red">AL AIRE</span> y tenés que ver <span class="chip"><i></i>OBS conectado</span>. Con red, además <span class="chip"><i></i>Sincronizado ✓</span>. Si aparece <b>Error de red</b>, el cambio no llegó: revisá internet y tocá <b>Actualizar</b>.</p></div></li>
+    </ol>
+    <div class="keysmap" aria-label="Atajos de teclado">
+      <div><kbd>F8</kbd> Entrar / Salir</div>
+      <div><kbd>1</kbd>–<kbd>9</kbd> Sacar un rápido al aire</div>
+      <div><kbd>Ctrl</kbd>+<kbd>↵</kbd> Mandar cambios</div>
+      <div><kbd>↵</kbd> en un campo: mandar ese texto</div>
+    </div>
+  </div>
+  <div class="cfg-f">
+    <label class="sw"><input type="checkbox" id="helpHide"><span class="tr"></span>No mostrar al entrar</label>
+    <span class="spacer"></span>
+    <button class="btn" id="helpNet">Configurar red</button>
+    <button class="btn solid" id="helpGo">Empezar</button>
+  </div>
+</dialog>
 <dialog class="cfg" id="cfgDlg">
   <div class="cfg-h"><h2>Sincronización en red</h2><button id="cfgClose" aria-label="Cerrar">×</button></div>
   <div class="cfg-b">
@@ -621,6 +672,7 @@
   $('btnSend').onclick = () => { send(); toast('Zócalo actualizado'); };
   const typing = () => /^(INPUT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
   addEventListener('keydown', e => {
+    if (document.querySelector('dialog[open]')) return;   // con la guía o la configuración abiertas no hay atajos
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); toast('Zócalo actualizado'); return; }
     if (e.key === 'F8') { e.preventDefault(); setVisible(!S.visible); return; }
     if (!typing() && !e.ctrlKey && !e.metaKey && !e.altKey && /^[1-9]$/.test(e.key)) {
@@ -871,6 +923,20 @@
   setInterval(clocks, 1000);
 
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1700); }
+
+  /* ---- Guía de uso: se abre al entrar (salvo que la ocultes) y con el botón ? ---- */
+  const HKEY = 'lametro-zocalo-guia-oculta';
+  const help = $('helpDlg');
+  const openHelp = () => { $('helpHide').checked = localStorage.getItem(HKEY) === '1'; help.showModal(); $('helpGo').focus(); };
+  help.addEventListener('close', () => {
+    if ($('helpHide').checked) localStorage.setItem(HKEY, '1'); else localStorage.removeItem(HKEY);
+  });
+  $('btnHelp').onclick = openHelp;
+  $('helpClose').onclick = () => help.close();
+  $('helpGo').onclick = () => help.close();
+  $('helpNet').onclick = () => { help.close(); $('btnCfg').click(); };
+  help.addEventListener('click', e => { if (e.target === help) help.close(); });   // clic afuera cierra
+  if (localStorage.getItem(HKEY) !== '1') openHelp();
 
   fill(); drawPresets(); clocks();
   refreshUrls();
