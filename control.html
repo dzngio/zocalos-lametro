@@ -2,190 +2,411 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Control de zócalos · La Metro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zócalos · La Metro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--red:#ED1C24;--ink:#0e0e0e;--panel:#171717;--line:#2a2a2a;--mute:#8a8a8a;--fg:#f3f3f3}
+  :root{
+    --bg:#09090B; --s1:#121215; --s2:#18181B; --s3:#1f1f23; --line:#27272A; --line2:#3f3f46;
+    --red:#FF1E27; --red-2:#E11D48; --red-deep:#7a0a10;
+    --fg:#FAFAFA; --fg2:#d4d4d8; --mute:#a1a1aa; --dim:#71717a;
+    --warn:#F5A524;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --sans:"Geist",system-ui,sans-serif; --mono:"Geist Mono",ui-monospace,monospace;
+  }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--ink);color:var(--fg);font-family:"Geist",system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
-  .mono,label,.tag{font-family:"Geist Mono",ui-monospace,monospace}
-  header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--ink);z-index:5}
-  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em;text-transform:uppercase}
-  header .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #555;padding:3px 8px;color:#ccc}
-  .onair{margin-left:auto;display:flex;align-items:center;gap:8px;font:600 12px "Geist Mono";letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-  .onair i{width:10px;height:10px;border-radius:50%;background:#444}
-  .onair.on{color:#fff}.onair.on i{background:var(--red);box-shadow:0 0 10px var(--red);animation:p 1.2s infinite}
-  @keyframes p{50%{opacity:.4}}
+  html{overflow:hidden}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;overflow:hidden}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+  .mono{font-family:var(--mono)}
+  kbd{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 5px;border:1px solid currentColor;opacity:.55;line-height:1}
 
-  .wrap{display:grid;grid-template-columns:420px 1fr;min-height:calc(100vh - 57px)}
-  .form{border-right:1px solid var(--line);padding:16px 20px 40px;overflow:auto}
-  .right{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
-  section{border-top:1px solid var(--line);padding:14px 0 6px}
-  section:first-child{border-top:0;padding-top:0}
-  h2{margin:0 0 10px;font:700 11px "Geist Mono";letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
-  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:10px 0 5px}
-  input[type=text],textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:10px 12px;font:500 15px "Geist";border-radius:0;outline:none}
-  input[type=text]:focus,textarea:focus{border-color:var(--red)}
-  textarea{min-height:110px;resize:vertical;font-size:14px;line-height:1.45}
-  .row{display:flex;gap:8px}.row>*{flex:1}
-  .seg{display:flex;border:1px solid var(--line)}
-  .seg button{flex:1;background:transparent;color:var(--fg);border:0;border-left:1px solid var(--line);padding:10px 8px;font:600 13px "Geist";cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-  .seg button:first-child{border-left:0}
-  .seg button.on{background:#fff;color:#000}
-  .sw{width:14px;height:14px;border:1px solid #666;display:inline-block}
-  .check{display:flex;align-items:center;gap:10px;margin:10px 0;font:500 14px "Geist";color:var(--fg);text-transform:none;letter-spacing:0;cursor:pointer}
-  .check input{accent-color:var(--red);width:16px;height:16px}
-  input[type=range]{width:100%;accent-color:var(--red)}
+  /* ================= TALLY BAR ================= */
+  .tally{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;height:64px;padding:0 20px;
+    background:var(--s1);border-bottom:1px solid var(--line);flex:none}
+  .tally::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+  body.live .tally::after{transform:scaleX(1)}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand svg{height:15px;width:auto;fill:var(--fg);flex:none}
+  .brand b{font-weight:800;font-size:17px;letter-spacing:-.02em}
+  .brand span{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
 
-  .go{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .btn{border:0;padding:16px;font:800 18px "Geist";letter-spacing:-.02em;text-transform:uppercase;cursor:pointer}
-  .btn.in{background:var(--red);color:#fff}.btn.out{background:#fff;color:#000}
+  .lamp{display:flex;align-items:center;gap:14px}
+  .lamp-face{position:relative;display:grid;place-items:center;height:40px;padding:0 22px;border:1px solid var(--line2);background:#0c0c0e;
+    font:900 19px/1 var(--sans);letter-spacing:.06em;color:#2e2e33;text-transform:uppercase;transition:background-color .35s,color .35s,border-color .35s,box-shadow .35s}
+  .lamp-face::before{content:"";position:absolute;inset:3px;border:1px solid rgba(255,255,255,.04)}
+  body.live .lamp-face{background:var(--red);border-color:#ff6b71;color:#fff;box-shadow:0 0 0 1px rgba(255,30,39,.35),0 0 26px rgba(255,30,39,.45);animation:glow 2.4s ease-in-out infinite}
+  @keyframes glow{50%{box-shadow:0 0 0 1px rgba(255,30,39,.25),0 0 14px rgba(255,30,39,.28)}}
+  .lamp-meta{display:flex;flex-direction:column;gap:3px;min-width:132px}
+  .lamp-meta b{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--mute)}
+  body.live .lamp-meta b{color:var(--fg)}
+  .lamp-meta span{font-family:var(--mono);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+
+  .right-meta{display:flex;align-items:center;justify-content:flex-end;gap:18px}
+  .sync{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;color:var(--mute);white-space:nowrap}
+  .sync i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--dim);flex:none}
+  .sync.ok i{background:var(--fg);border-color:var(--fg)}
+  .sync.ok{color:var(--fg2)}
+  .sync.wait i{border-color:var(--warn);background:var(--warn);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:.2}}
+  .tc{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums;color:var(--fg)}
+
+  /* ================= LAYOUT ================= */
+  .wrap{flex:1;min-height:0;display:grid;grid-template-columns:392px 1fr}
+  .side{border-right:1px solid var(--line);overflow-y:auto;background:var(--bg)}
+  .side::-webkit-scrollbar{width:8px}.side::-webkit-scrollbar-thumb{background:var(--line)}
+  .blk{padding:18px 20px 20px;border-bottom:1px solid var(--line)}
+  .blk-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px}
+  .blk-h h2{margin:0;font-size:13px;font-weight:700;letter-spacing:-.005em;color:var(--fg)}
+  .blk-h small{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  /* ---- Teclas ENTRAR / SALIR ---- */
+  .keys{display:grid;grid-template-columns:1.25fr 1fr;gap:10px}
+  .key{position:relative;height:84px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:12px 14px 11px;
+    background:var(--s2);border:1px solid var(--line);color:var(--fg);text-align:left;
+    box-shadow:0 5px 0 #000,inset 0 1px 0 rgba(255,255,255,.05);transform:translateY(0);
+    transition:transform .09s ease,box-shadow .09s ease,background-color .25s,color .25s,border-color .25s}
+  .key:hover{border-color:var(--line2)}
+  .key:active{transform:translateY(4px);box-shadow:0 1px 0 #000,inset 0 2px 6px rgba(0,0,0,.5)}
+  .key .k-top{display:flex;width:100%;justify-content:space-between;align-items:center}
+  .key svg{width:18px;height:18px;fill:currentColor}
+  .key .k-lbl{font-weight:800;font-size:22px;letter-spacing:-.03em;text-transform:uppercase;line-height:1}
+  .key .k-st{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:4px}
+  .key-in svg{fill:var(--red)}
+  .key-in.is-live{background:var(--red);border-color:#ff6b71;color:#fff;transform:translateY(4px);
+    box-shadow:0 1px 0 var(--red-deep),0 0 30px rgba(255,30,39,.32),inset 0 1px 0 rgba(255,255,255,.25)}
+  .key-in.is-live svg{fill:#fff}
+  .key-in.is-live .k-st,.key-out.is-idle .k-st{color:inherit;opacity:.8}
+  .key-out.is-idle{background:var(--fg);border-color:var(--fg);color:var(--bg);transform:translateY(4px);box-shadow:0 1px 0 #000}
+  .ops{display:flex;align-items:center;gap:10px;margin-top:16px}
+  .btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;background:var(--s2);border:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--fg);transition:border-color .2s,background-color .2s}
+  .btn:hover{border-color:var(--line2);background:var(--s3)}
   .btn:active{transform:translateY(1px)}
-  .small{background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:9px 12px;font:600 12px "Geist Mono";letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
-  .small:hover{border-color:#666}
-  .small.red{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.solid{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .btn.solid:hover{background:#fff}
+  .btn kbd{opacity:.6}
+  .ops .btn{margin-left:auto}
 
-  .pv{position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid var(--line);overflow:hidden}
-  .pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .pvbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .pvbar .lbl{font:600 11px "Geist Mono";letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-right:4px}
+  /* ---- Switch ---- */
+  .sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--fg2);user-select:none}
+  .sw input{position:absolute;opacity:0;pointer-events:none}
+  .sw .tr{position:relative;width:32px;height:18px;background:var(--s3);border:1px solid var(--line2);flex:none;transition:background-color .2s,border-color .2s}
+  .sw .tr::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;background:var(--dim);transition:transform .25s var(--ease),background-color .2s}
+  .sw input:checked+.tr{background:var(--fg);border-color:var(--fg)}
+  .sw input:checked+.tr::after{transform:translateX(14px);background:var(--bg)}
+  .sw input:focus-visible+.tr{outline:2px solid var(--fg);outline-offset:2px}
 
-  .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-  .preset{background:var(--panel);border:1px solid var(--line);padding:10px 12px;cursor:pointer;position:relative;text-align:left;color:var(--fg)}
-  .preset:hover{border-color:var(--red)}
-  .preset .t{font:800 15px "Geist";text-transform:uppercase;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:22px}
-  .preset .m{font:500 11px "Geist Mono";color:var(--mute);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
-  .preset .x{position:absolute;top:6px;right:8px;color:var(--mute);font:600 14px "Geist Mono";background:none;border:0;cursor:pointer}
-  .preset .x:hover{color:var(--red)}
-  .preset .chip{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:middle;border:1px solid #555}
-  .empty{color:var(--mute);font:500 13px "Geist Mono"}
-  .help{font:400 13px/1.55 "Geist";color:#bdbdbd}
-  .help code{font-family:"Geist Mono";background:var(--panel);padding:2px 6px;color:#fff;word-break:break-all}
-  .help ol{padding-left:18px;margin:6px 0}
-  .card{border:1px solid var(--line);padding:14px 16px}
-  .card h2{margin-bottom:6px}
-  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;font:600 12px "Geist Mono";letter-spacing:.08em;text-transform:uppercase;opacity:0;transition:opacity .25s;pointer-events:none}
-  .toast.show{opacity:1}
-  .hint{font:500 11px "Geist Mono";color:var(--mute);margin-top:6px}
+  /* ---- Rápidos ---- */
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .preset{position:relative;display:grid;grid-template-columns:4px 1fr auto;gap:0 10px;align-items:center;min-height:52px;padding:8px 10px 8px 0;
+    background:var(--s1);border:1px solid var(--line);text-align:left;transition:border-color .2s,background-color .2s}
+  .preset:hover{border-color:var(--line2);background:var(--s2)}
+  .preset:active{transform:translateY(1px)}
+  .preset .bar{align-self:stretch;margin:-8px 0;background:var(--c)}
+  .preset[data-tema="blanco"] .bar{background:#FAFAFA}
+  .preset[data-tema="negro"] .bar{background:#3f3f46}
+  .preset .t{font-weight:700;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .preset .m{grid-column:2;font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .preset .n{grid-row:1/span 2;grid-column:3;font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line2);width:20px;height:20px;display:grid;place-items:center}
+  .preset .x{position:absolute;top:-1px;right:-1px;width:20px;height:20px;display:none;place-items:center;background:var(--bg);border:1px solid var(--line2);color:var(--mute);font:600 13px/1 var(--mono);padding:0}
+  .preset:hover .x,.preset:focus-within .x{display:grid}
+  .preset .x:hover{color:var(--red);border-color:var(--red)}
+  .preset.on{border-color:var(--fg)}
+  .preset.on.live{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+  .preset.on .n{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .preset.on.live .n{background:var(--red);border-color:var(--red);color:#fff}
+  .save-row{display:flex;gap:6px;margin-top:10px}
+  .save-row input{flex:1;min-width:0;height:34px;background:var(--s1);border:1px solid var(--line);padding:0 10px;font-size:13px;outline:none}
+  .save-row input:focus{border-color:var(--fg)}
+  .empty{grid-column:1/-1;font-family:var(--mono);font-size:12px;color:var(--dim);padding:10px 0}
+
+  /* ---- Segmentados ---- */
+  .lbl{display:block;font-family:var(--mono);font-size:11.5px;color:var(--mute);margin:14px 0 7px}
+  .lbl:first-child{margin-top:0}
+  .seg{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);background:var(--s1);border:1px solid var(--line);padding:3px;isolation:isolate}
+  .seg::before{content:"";position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--n));background:var(--fg);
+    transform:translateX(calc(var(--i,0) * 100%));transition:transform .32s var(--ease)}
+  .seg button{display:flex;align-items:center;justify-content:center;gap:9px;height:34px;padding:0 8px;background:none;border:0;
+    font-size:13px;font-weight:600;color:var(--mute);transition:color .25s}
+  .seg button:hover{color:var(--fg)}
+  .seg button.on{color:var(--bg)}
+  .seg.sm button{height:28px;font-size:12px}
+  .swc{width:12px;height:12px;box-shadow:0 0 0 1px rgba(255,255,255,.25);flex:none}
+  .seg button.on .swc{box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+
+  /* ---- Campos ---- */
+  .field{margin-top:14px}
+  .field:first-child{margin-top:0}
+  .fh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .fh label{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+  .count{font-family:var(--mono);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .count.warn{color:var(--warn)}
+  .count.over{color:var(--red)}
+  .box{position:relative}
+  .box input,.box textarea{width:100%;background:var(--s1);border:1px solid var(--line);padding:10px 36px 10px 12px;font-size:15px;font-weight:500;outline:none;transition:border-color .2s}
+  .box textarea{min-height:104px;resize:vertical;font-size:13.5px;line-height:1.5;display:block}
+  .box textarea.short{min-height:0;height:46px;line-height:1.3;padding-top:6px;padding-bottom:6px;font-size:13px}
+  .box input:focus,.box textarea:focus{border-color:var(--fg)}
+  .field.warn .box input{border-color:rgba(245,165,36,.6)}
+  .field.over .box input,.field.over .box textarea{border-color:var(--red)}
+  .clr{position:absolute;top:7px;right:6px;width:26px;height:26px;display:grid;place-items:center;background:none;border:0;color:var(--dim);font:500 18px/1 var(--mono);padding:0;opacity:0;pointer-events:none;transition:opacity .15s,color .15s}
+  .box.has .clr{opacity:1;pointer-events:auto}
+  .clr:hover{color:var(--fg)}
+  .meter{position:relative;height:3px;background:var(--s3);margin-top:6px}
+  .meter i{position:absolute;left:0;top:0;bottom:0;background:var(--mute);transition:width .25s var(--ease),background-color .2s}
+  .meter::after{content:"";position:absolute;right:0;top:-3px;bottom:-3px;width:1px;background:var(--line2)}
+  .field.warn .meter i{background:var(--warn)}
+  .field.over .meter i{background:var(--red)}
+  .fmsg{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:6px;min-height:14px}
+  .field.warn .fmsg{color:var(--warn)}
+  .field.over .fmsg{color:var(--red)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid2 .field{margin-top:14px}
+  .row-sw{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px}
+  input[type=range]{width:100%;accent-color:var(--fg);margin:2px 0}
+
+  details.obs{padding:16px 20px 22px}
+  details.obs summary{cursor:pointer;font-size:13px;font-weight:700;list-style:none;display:flex;justify-content:space-between}
+  details.obs summary::after{content:"+";font-family:var(--mono);color:var(--dim)}
+  details.obs[open] summary::after{content:"−"}
+  .help{font-size:13px;line-height:1.55;color:var(--fg2)}
+  .help ol{padding-left:18px;margin:12px 0}
+  .help li{margin-bottom:8px}
+  .help code{font-family:var(--mono);font-size:11.5px;background:var(--s2);border:1px solid var(--line);padding:2px 6px;color:var(--fg);word-break:break-all}
+  .help .btn{height:28px;margin-top:6px}
+
+  /* ================= PREVIEW ================= */
+  .stage{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--s1)}
+  .toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--bg)}
+  .tgroup{display:flex;align-items:center;gap:8px}
+  .tgroup>span{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .toolbar .spacer{flex:1}
+  .canvas{flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+  .viewport{position:relative;width:min(100%, calc((100vh - 210px) * 16 / 9));min-width:min(100%,480px);aspect-ratio:16/9;margin:0 auto;background:#000;outline:1px solid var(--line);overflow:hidden;flex:none}
+  .viewport.full{overflow:auto}
+  .frame{position:relative;width:100%;height:100%}
+  .viewport.full .frame{width:1920px;height:1080px}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .guides{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s}
+  .viewport.show-guides .guides{opacity:1}
+  .g{position:absolute;border:1px solid}
+  .g-action{inset:3.5%;border-color:rgba(250,250,250,.38);border-style:dashed}
+  .g-title{inset:5%;border-color:rgba(255,30,39,.75)}
+  .g span{position:absolute;top:4px;left:6px;font:600 10px var(--mono);letter-spacing:.02em;padding:1px 4px;background:rgba(9,9,11,.7)}
+  .g-action span{color:var(--fg2)}
+  .g-title span{color:#ff7a80;left:auto;right:6px}
+  .g-cx,.g-cy{position:absolute;background:rgba(250,250,250,.22)}
+  .g-cx{left:50%;top:calc(50% - 14px);height:28px;width:1px}
+  .g-cy{top:50%;left:calc(50% - 14px);width:28px;height:1px}
+  .g-third{position:absolute;top:0;bottom:0;width:1px;background:rgba(250,250,250,.08)}
+  .pv-meta{width:min(100%, calc((100vh - 210px) * 16 / 9));min-width:min(100%,480px);margin:0 auto;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .pv-meta b{color:var(--fg2);font-weight:600}
+  .pv-live{display:inline-flex;align-items:center;gap:7px}
+  .pv-live i{width:7px;height:7px;background:var(--line2)}
+  body.live .pv-live i{background:var(--red)}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,12px);background:var(--fg);color:var(--bg);padding:10px 14px;font:600 12px var(--mono);
+    opacity:0;transition:opacity .25s,transform .35s var(--ease);pointer-events:none;z-index:20}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:1100px){
+    html{overflow:auto}
+    body{overflow:auto;height:auto}
+    .wrap{grid-template-columns:1fr}
+    .side{border-right:0;overflow:visible}
+    .stage{order:-1}
+    .tally{grid-template-columns:1fr auto;height:auto;padding:12px 16px;row-gap:10px}
+    .right-meta{grid-column:1/-1;justify-content:space-between}
+    .brand span{display:none}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 </style>
 </head>
 <body>
-<header>
-  <h1>Zócalos</h1><span class="tag">La Metro · Streaming</span>
-  <div class="onair" id="onair"><i></i><span>Fuera de aire</span></div>
+
+<header class="tally">
+  <div class="brand">
+    <svg viewBox="0 0 287.57 62.28" aria-label="la metro"><polygon points="0 0 0 61.01 5.42 61.01 5.42 0 0 0 0 0"/><path d="M185.94,3.6v13.26h-7.42v8.11h7.42v26.03c0,8.82,6.56,10.51,14.12,10.51,2.43,0,5.06-.07,7.13-.42v-9.52c-1.28.28-2.5.35-3.78.35-4.14,0-5.2-.99-5.2-5.08v-21.87h8.99v-8.11h-8.99V3.6h-12.27Z"/><path d="M85.94,15.66c-5.78,0-10.48,2.68-13.62,7.19h-.22v-6h-11.55v44.15h12.27v-25.6c0-8.67,5.85-10.23,8.28-10.23,7.78,0,7.49,5.92,7.49,11.07v24.76h12.19v-24.61c0-5.5,1.28-11.22,8.2-11.22s7.49,4.94,7.49,10.79v25.04h12.27v-29.55c0-11.43-6.85-15.8-16.33-15.8-6.21,0-10.84,3.53-13.41,7.33-2.43-5.29-7.49-7.33-13.05-7.33h0Z"/><path d="M238.92,15.66c-5.92,0-11.98,3.88-14.19,9.38h-.22v-8.18h-11.62v44.15h12.26v-19.96c0-7.76,3.14-14.11,12.13-14.11,1.43,0,3.21.14,4.35.42v-11.28c-.78-.28-1.85-.42-2.71-.42h0Z"/><path d="M155.91,15.66c-13.55,0-22.82,10.09-22.82,23.34s8.77,23.21,22.82,23.21c10.06,0,17.4-4.44,20.9-14.88h-10.84c-.79,2.75-4.71,5.71-9.63,5.71-6.85,0-10.62-3.53-10.98-11.21h32.24c.86-13.54-6.49-26.17-21.68-26.17ZM145.35,34.21c.22-3.46,2.42-9.45,10.2-9.45,5.99,0,8.63,3.24,9.77,9.45h-19.97Z"/><path d="M264.39,15.66c-13.98,0-23.04,9.24-23.04,23.34s9.06,23.21,23.04,23.21,23.18-9.24,23.18-23.21-9.06-23.34-23.18-23.34ZM264.39,53.04c-8.27,0-10.77-7.05-10.77-14.04s2.5-14.18,10.77-14.18,10.92,7.05,10.92,14.18-2.5,14.04-10.92,14.04Z"/><path d="M53.06,56.5c-2.21,0-3.21-1.2-3.21-3.24v-23.42c0-11.78-8.56-14.18-16.4-14.18-10.2,0-17.55,4.44-18.05,14.74h5.42c.21-7.12,5.2-10.23,11.91-10.23s11.7,1.83,11.7,9.03c0,4.87-2.49,5.5-6.99,6-11.77,1.41-23.96,1.83-23.96,14.17,0,8.89,6.78,12.91,14.98,12.91s12.41-3.24,16.19-8.96h.21c0,4.58.86,7.69,6.42,7.69,1.42,0,2.28-.07,3.5-.35v-4.51c-.43.14-1.14.35-1.71.35ZM44.43,43.94c.07,8.61-7.27,13.75-15.55,13.75-5.06,0-9.91-3.24-9.91-8.68,0-8.6,11.41-8.53,20.68-10.16,1.5-.28,3.85-.7,4.57-1.97h.21v7.05Z"/></svg>
+    <b>Zócalos</b><span>Control de stream</span>
+  </div>
+
+  <div class="lamp" id="onair" role="status" aria-live="polite">
+    <div class="lamp-face">Al aire</div>
+    <div class="lamp-meta"><b id="lampState">En espera</b><span id="lampTime">--:--</span></div>
+  </div>
+
+  <div class="right-meta">
+    <div class="sync" id="sync" title="Para controlar OBS, abrí este panel como panel acoplado dentro de OBS."><i></i><span id="syncTxt">Buscando OBS</span></div>
+    <div class="tc" id="tc">00:00:00</div>
+  </div>
 </header>
 
 <div class="wrap">
-  <div class="form">
-    <section>
-      <h2>Al aire</h2>
-      <div class="go">
-        <button class="btn in" id="btnIn">Entrar</button>
-        <button class="btn out" id="btnOut">Salir</button>
+  <aside class="side">
+
+    <!-- SALIDA -->
+    <section class="blk">
+      <div class="keys">
+        <button class="key key-in" id="btnIn" aria-pressed="false">
+          <span class="k-top"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3l12 7-12 7z"/></svg><kbd>F8</kbd></span>
+          <span><span class="k-lbl">Entrar</span><span class="k-st" id="inSt" style="display:block">Mostrar zócalo</span></span>
+        </button>
+        <button class="key key-out" id="btnOut" aria-pressed="true">
+          <span class="k-top"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v12H4z"/></svg><kbd>F8</kbd></span>
+          <span><span class="k-lbl">Salir</span><span class="k-st" id="outSt" style="display:block">Oculto</span></span>
+        </button>
       </div>
-      <label class="check"><input type="checkbox" id="auto" checked> Enviar cambios en vivo mientras escribo</label>
-      <button class="small red" id="btnSend" style="width:100%">Actualizar zócalo ↵</button>
-      <div class="hint">Atajos: Ctrl+Enter actualiza · F8 entra/sale</div>
+      <div class="ops">
+        <label class="sw"><input type="checkbox" id="auto" checked><span class="tr"></span>Cambios en vivo</label>
+        <button class="btn" id="btnSend" title="Manda los cambios al zócalo">Actualizar <kbd>Ctrl ↵</kbd></button>
+      </div>
     </section>
 
-    <section>
-      <h2>Estilo</h2>
-      <label>Color principal</label>
-      <div class="seg" data-k="tema">
-        <button data-v="rojo"><span class="sw" style="background:#ED1C24"></span>Rojo</button>
-        <button data-v="negro"><span class="sw" style="background:#111"></span>Negro</button>
-        <button data-v="blanco"><span class="sw" style="background:#fff"></span>Blanco</button>
+    <!-- RÁPIDOS -->
+    <section class="blk">
+      <div class="blk-h"><h2>Rápidos</h2><small>Clic o tecla 1–9 para salir al aire</small></div>
+      <div class="presets" id="presets"></div>
+      <div class="save-row">
+        <input type="text" id="presetName" placeholder="Nombre, ej. Invitado 2" maxlength="28" aria-label="Nombre del rápido">
+        <button class="btn" id="btnSave">Guardar actual</button>
       </div>
-      <label>Tipo de zócalo</label>
-      <div class="seg" data-k="modo">
+    </section>
+
+    <!-- ESTILO -->
+    <section class="blk">
+      <div class="blk-h"><h2>Estilo</h2></div>
+      <span class="lbl">Color principal</span>
+      <div class="seg" data-k="tema" style="--n:3">
+        <button data-v="rojo"><span class="swc" style="background:#FF1E27"></span>Rojo</button>
+        <button data-v="negro"><span class="swc" style="background:#09090B"></span>Negro</button>
+        <button data-v="blanco"><span class="swc" style="background:#FAFAFA"></span>Blanco</button>
+      </div>
+      <span class="lbl">Tipo de zócalo</span>
+      <div class="seg" data-k="modo" style="--n:2">
         <button data-v="titular">Titular</button>
         <button data-v="persona">Persona</button>
       </div>
     </section>
 
-    <section>
-      <h2>Textos</h2>
-      <label for="kicker">Volanta (etiqueta superior)</label>
-      <input type="text" id="kicker">
+    <!-- TEXTOS -->
+    <section class="blk">
+      <div class="blk-h"><h2>Textos</h2><small>Enter manda el cambio</small></div>
+      <div class="field" data-max="32"><div class="fh"><label for="kicker">Volanta</label><span class="count"></span></div>
+        <div class="box"><input type="text" id="kicker" autocomplete="off"><button class="clr" aria-label="Limpiar volanta" tabindex="-1">×</button></div></div>
+
       <div id="boxTitular">
-        <label for="titular">Titular</label>
-        <input type="text" id="titular">
+        <div class="field" data-fit="titular"><div class="fh"><label for="titular">Titular</label><span class="count"></span></div>
+          <div class="box"><input type="text" id="titular" autocomplete="off"><button class="clr" aria-label="Limpiar titular" tabindex="-1">×</button></div>
+          <div class="meter"><i></i></div><div class="fmsg"></div></div>
       </div>
+
       <div id="boxPersona">
-        <div class="row">
-          <div><label for="nombre">Nombre</label><input type="text" id="nombre"></div>
-          <div style="flex:.6"><label for="handle">Usuario</label><input type="text" id="handle"></div>
+        <div class="field" data-fit="nombre"><div class="fh"><label for="nombre">Nombre</label><span class="count"></span></div>
+          <div class="box"><input type="text" id="nombre" autocomplete="off"><button class="clr" aria-label="Limpiar nombre" tabindex="-1">×</button></div>
+          <div class="meter"><i></i></div><div class="fmsg"></div></div>
+        <div class="grid2">
+          <div class="field" data-max="20"><div class="fh"><label for="handle">Usuario</label><span class="count"></span></div>
+            <div class="box"><input type="text" id="handle" autocomplete="off"><button class="clr" aria-label="Limpiar usuario" tabindex="-1">×</button></div></div>
+          <div class="field" data-max="48"><div class="fh"><label for="rol">Rol</label><span class="count"></span></div>
+            <div class="box"><input type="text" id="rol" autocomplete="off"><button class="clr" aria-label="Limpiar rol" tabindex="-1">×</button></div></div>
         </div>
-        <label for="rol">Rol / descripción</label>
-        <input type="text" id="rol">
       </div>
-      <label for="escala">Tamaño de texto <span id="escalaV" class="mono"></span></label>
-      <input type="range" id="escala" min="0.7" max="1.15" step="0.05">
+
+      <span class="lbl" style="margin-top:16px">Tamaño de texto <span id="escalaV"></span></span>
+      <input type="range" id="escala" min="0.7" max="1.15" step="0.05" aria-label="Tamaño de texto">
     </section>
 
-    <section>
-      <h2>QR inscripción</h2>
-      <label class="check"><input type="checkbox" id="qrOn"> Mostrar QR</label>
-      <div class="row">
-        <div><label for="qrL1">Línea chica</label><input type="text" id="qrL1"></div>
-        <div><label for="qrL2">Línea grande</label><input type="text" id="qrL2"></div>
-      </div>
-      <div class="row">
-        <div style="flex:.6"><label for="qrPie">Pie grande</label><input type="text" id="qrPie"></div>
-        <div><label for="qrPieSub">Pie chico (Enter = salto)</label><textarea id="qrPieSub" style="min-height:44px;height:44px"></textarea></div>
+    <!-- QR -->
+    <section class="blk">
+      <div class="blk-h"><h2>QR de inscripción</h2></div>
+      <div class="row-sw"><label class="sw"><input type="checkbox" id="qrOn"><span class="tr"></span>Mostrar QR</label></div>
+      <div class="grid2" style="margin-top:-14px">
+        <div class="field" data-max="22"><div class="fh"><label for="qrL1">Línea chica</label><span class="count"></span></div>
+          <div class="box"><input type="text" id="qrL1" autocomplete="off"><button class="clr" aria-label="Limpiar línea chica" tabindex="-1">×</button></div></div>
+        <div class="field" data-max="12"><div class="fh"><label for="qrL2">Línea grande</label><span class="count"></span></div>
+          <div class="box"><input type="text" id="qrL2" autocomplete="off"><button class="clr" aria-label="Limpiar línea grande" tabindex="-1">×</button></div></div>
+        <div class="field" data-max="5"><div class="fh"><label for="qrPie">Pie grande</label><span class="count"></span></div>
+          <div class="box"><input type="text" id="qrPie" autocomplete="off"><button class="clr" aria-label="Limpiar pie grande" tabindex="-1">×</button></div></div>
+        <div class="field" data-max="24"><div class="fh"><label for="qrPieSub">Pie chico</label><span class="count"></span></div>
+          <div class="box"><textarea id="qrPieSub" class="short" title="Enter hace salto de línea"></textarea><button class="clr" aria-label="Limpiar pie chico" tabindex="-1">×</button></div></div>
       </div>
     </section>
 
-    <section>
-      <h2>Ticker</h2>
-      <label class="check"><input type="checkbox" id="tickerOn"> Mostrar ticker</label>
-      <label class="check"><input type="checkbox" id="relojOn"> Mostrar reloj</label>
-      <label for="tickerLabel">Etiqueta</label>
-      <input type="text" id="tickerLabel">
-      <label for="ticker">Mensajes · uno por línea · "Nombre: mensaje"</label>
-      <textarea id="ticker"></textarea>
-      <label for="tickerVel">Velocidad <span id="velV" class="mono"></span></label>
-      <input type="range" id="tickerVel" min="20" max="220" step="5">
+    <!-- TICKER -->
+    <section class="blk">
+      <div class="blk-h"><h2>Ticker</h2></div>
+      <div class="row-sw">
+        <label class="sw"><input type="checkbox" id="tickerOn"><span class="tr"></span>Mostrar ticker</label>
+        <label class="sw"><input type="checkbox" id="relojOn"><span class="tr"></span>Mostrar reloj</label>
+      </div>
+      <div class="field" data-max="20"><div class="fh"><label for="tickerLabel">Etiqueta</label><span class="count"></span></div>
+        <div class="box"><input type="text" id="tickerLabel" autocomplete="off"><button class="clr" aria-label="Limpiar etiqueta" tabindex="-1">×</button></div></div>
+      <div class="field"><div class="fh"><label for="ticker">Mensajes, uno por línea. "Nombre: mensaje" resalta el nombre</label><span class="count"></span></div>
+        <div class="box"><textarea id="ticker"></textarea><button class="clr" aria-label="Limpiar mensajes" tabindex="-1">×</button></div></div>
+      <span class="lbl" style="margin-top:14px">Velocidad <span id="velV"></span></span>
+      <input type="range" id="tickerVel" min="20" max="220" step="5" aria-label="Velocidad del ticker">
     </section>
-  </div>
 
-  <div class="right">
-    <div class="pvbar">
-      <span class="lbl">Vista previa</span>
-      <div class="seg" id="bgSeg" style="flex:none">
-        <button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button><button data-v="check">Transparente</button>
-      </div>
-    </div>
-    <div class="pv"><iframe id="pv" src="zocalo.html?preview=1&bg=dark"></iframe></div>
-
-    <div class="card">
-      <h2>Guardados</h2>
-      <div class="pvbar" style="margin-bottom:10px">
-        <button class="small red" id="btnSave">+ Guardar zócalo actual</button>
-        <span class="hint" style="margin:0">Clic en uno para cargarlo y mandarlo al aire.</span>
-      </div>
-      <div class="presets" id="presets"></div>
-    </div>
-
-    <div class="card help">
-      <h2>Cómo usarlo en OBS</h2>
+    <details class="obs help">
+      <summary>Configurar en OBS</summary>
       <ol>
-        <li><b>Fuente</b> → Agregar <i>Navegador</i> → <span id="srcHow"></span> Tamaño <b>1920 × 1080</b>. Destildá “Apagar la fuente cuando no esté visible”.</li>
-        <li><b>Panel</b> → menú <i>Paneles → Paneles de navegador personalizados</i>, nombre “Zócalos” y como URL pegá:<br><code id="dockUrl"></code> <button class="small" id="copyDock" style="margin-top:6px">Copiar</button></li>
-        <li>Desde ese panel dentro de OBS editás, entrás y sacás el zócalo en vivo. Si cambiás algo en este navegador (fuera de OBS), no llega a OBS: usá el panel acoplado.</li>
+        <li><b>Fuente</b>: Agregar → Navegador → <span id="srcHow"></span> Tamaño <b>1920 × 1080</b>. Destildá “Apagar la fuente cuando no esté visible”.</li>
+        <li><b>Panel</b>: Paneles → Paneles de navegador personalizados, nombre “Zócalos” y esta URL:<br><code id="dockUrl"></code><br><button class="btn" id="copyDock">Copiar URL del panel</button></li>
+        <li>Manejá el zócalo desde ese panel acoplado. Arriba a la derecha vas a ver “OBS conectado” cuando la fuente responde.</li>
       </ol>
-      <div>Zócalo fijo sin panel: copiá una URL con todo el contenido actual y usala como fuente.</div>
-      <button class="small" id="copyFixed" style="margin-top:8px">Copiar URL de zócalo fijo</button>
+      <p>Zócalo fijo sin panel: copiá una URL con el contenido actual y usala como fuente.</p>
+      <button class="btn" id="copyFixed">Copiar URL de zócalo fijo</button>
+    </details>
+  </aside>
+
+  <main class="stage">
+    <div class="toolbar">
+      <div class="tgroup"><span>Fondo</span>
+        <div class="seg sm" id="bgSeg" style="--n:3">
+          <button data-v="dark" class="on">Oscuro</button><button data-v="light">Claro</button><button data-v="check">Transparente</button>
+        </div>
+      </div>
+      <div class="tgroup"><span>Escala</span>
+        <div class="seg sm" id="scaleSeg" style="--n:2">
+          <button data-v="fit" class="on">Ajustar</button><button data-v="full">100%</button>
+        </div>
+      </div>
+      <label class="sw"><input type="checkbox" id="guidesOn" checked><span class="tr"></span>Guías safe</label>
+      <span class="spacer"></span>
+      <button class="btn solid" id="copySrc2">Copiar URL para OBS</button>
     </div>
-  </div>
+
+    <div class="canvas">
+      <div class="viewport show-guides" id="viewport">
+        <div class="frame" id="frame">
+          <iframe id="pv" src="zocalo.html?preview=1&bg=dark" title="Vista previa del zócalo"></iframe>
+          <div class="guides" aria-hidden="true">
+            <i class="g-third" style="left:33.333%"></i><i class="g-third" style="left:66.666%"></i>
+            <div class="g g-action"><span>Action safe 93%</span></div>
+            <div class="g g-title"><span>Title safe 90%</span></div>
+            <i class="g-cx"></i><i class="g-cy"></i>
+          </div>
+        </div>
+      </div>
+      <div class="pv-meta">
+        <span class="pv-live"><i></i><b id="pvState">Fuera de aire</b></span>
+        <span>Lienzo <b>1920 × 1080</b></span>
+        <span>Vista previa de lo que manda este panel</span>
+      </div>
+    </div>
+  </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 (() => {
-  const KEY = 'lametro-zocalo-state', PKEY = 'lametro-zocalo-presets';
+  const KEY = 'lametro-zocalo-state', PKEY = 'lametro-zocalo-presets', BEAT = 'lametro-zocalo-beat';
   const DEF = {
     visible: false, tema: 'rojo', modo: 'titular',
     kicker: 'En vivo desde La Metro', titular: 'Mostrá lo que hacés',
@@ -201,13 +422,21 @@
   let bc = null; try { bc = new BroadcastChannel('lametro-zocalos'); } catch {}
   const pv = $('pv');
 
+  /* ================= ENVÍO ================= */
+  let liveSince = S.visible ? Date.now() : null;
   function send() {
     localStorage.setItem(KEY, JSON.stringify(S));
     if (bc) bc.postMessage({ state: S });
     pv.contentWindow && pv.contentWindow.postMessage({ zocalo: S }, '*');
     paint();
   }
-  pv.addEventListener('load', () => pv.contentWindow.postMessage({ zocalo: S }, '*'));
+  pv.addEventListener('load', () => { pv.contentWindow.postMessage({ zocalo: S }, '*'); applyBg(); });
+
+  function setVisible(v) {
+    if (v && !S.visible) liveSince = Date.now();
+    if (!v) liveSince = null;
+    S.visible = v; send();
+  }
 
   const TEXT = ['kicker', 'titular', 'nombre', 'handle', 'rol', 'qrL1', 'qrL2', 'qrPie', 'qrPieSub', 'tickerLabel', 'ticker'];
   const BOOL = ['qrOn', 'tickerOn', 'relojOn'];
@@ -217,99 +446,270 @@
     TEXT.forEach(k => $(k).value = S[k]);
     BOOL.forEach(k => $(k).checked = !!S[k]);
     NUM.forEach(k => $(k).value = S[k]);
+    TEXT.forEach(k => checkField(k));
     paint();
   }
+
+  /* ================= ESTADO VISUAL ================= */
+  function setSeg(seg, v) {
+    const btns = [...seg.querySelectorAll('button')];
+    const i = Math.max(0, btns.findIndex(b => b.dataset.v === v));
+    seg.style.setProperty('--i', i);
+    btns.forEach((b, j) => { b.classList.toggle('on', j === i); b.setAttribute('aria-pressed', j === i); });
+  }
   function paint() {
-    document.querySelectorAll('.seg[data-k]').forEach(seg =>
-      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === S[seg.dataset.k])));
+    document.querySelectorAll('.seg[data-k]').forEach(seg => setSeg(seg, S[seg.dataset.k]));
     $('boxTitular').style.display = S.modo === 'titular' ? '' : 'none';
     $('boxPersona').style.display = S.modo === 'persona' ? '' : 'none';
     $('velV').textContent = S.tickerVel + ' px/s';
     $('escalaV').textContent = Math.round(S.escala * 100) + '%';
-    const oa = $('onair'); oa.classList.toggle('on', !!S.visible);
-    oa.querySelector('span').textContent = S.visible ? 'Al aire' : 'Fuera de aire';
+    const live = !!S.visible;
+    document.body.classList.toggle('live', live);
+    $('btnIn').classList.toggle('is-live', live); $('btnIn').setAttribute('aria-pressed', live);
+    $('btnOut').classList.toggle('is-idle', !live); $('btnOut').setAttribute('aria-pressed', !live);
+    $('inSt').textContent = live ? 'En pantalla' : 'Mostrar zócalo';
+    $('outSt').textContent = live ? 'Ocultar zócalo' : 'Oculto';
+    $('lampState').textContent = live ? 'Zócalo en pantalla' : 'En espera';
+    $('pvState').textContent = live ? 'Al aire' : 'Fuera de aire';
+    drawPresetsState();
+  }
+
+  /* ================= CAMPOS: contador, ancho seguro, limpiar ================= */
+  // Ancho útil del titular en el zócalo (px a 1920): 1920 − 2×96 márgenes − 228 QR − 8 − 260 logo − 80 padding
+  const SAFE_W = 1152;
+  const cv = document.createElement('canvas').getContext('2d');
+  function textW(text, size, weight, family, tracking) {
+    cv.font = `${weight} ${size}px ${family}`;
+    return cv.measureText(text).width + tracking * size * Math.max(0, text.length - 1);
+  }
+  function checkField(k) {
+    const el = $(k); if (!el) return;
+    const field = el.closest('.field'); if (!field) return;
+    const v = el.value;
+    field.querySelector('.box').classList.toggle('has', v.length > 0);
+    const count = field.querySelector('.count');
+    field.classList.remove('warn', 'over');
+    const fit = field.dataset.fit;
+    if (fit) {
+      const k2 = S.escala || 1;
+      let w, base, min, msgs;
+      if (fit === 'titular') {
+        const t = v.toUpperCase();
+        base = 96 * k2; min = 64 * k2;
+        w = textW(t, base, 800, 'Geist', -0.035);
+        msgs = ['Entra a tamaño completo', 'Se achica para entrar en una línea', 'Pasa a dos líneas', 'Muy largo: en pantalla se va a leer chico'];
+        const two = textW(t, 66 * k2, 800, 'Geist', -0.035);
+        var lvl = w <= SAFE_W ? 0 : w * (min / base) <= SAFE_W ? 1 : two <= SAFE_W * 2 * 0.92 ? 2 : 3;
+      } else {
+        const avail = SAFE_W - (S.handle ? textW(S.handle, 19, 500, 'Geist Mono', 0) + 18 : 0);
+        base = 70 * k2;
+        w = textW(v, base, 800, 'Geist', -0.035) * SAFE_W / avail;
+        msgs = ['Entra a tamaño completo', 'Se achica para entrar', 'Se achica bastante', 'Muy largo: en pantalla se va a leer chico'];
+        const r = w / SAFE_W;
+        var lvl = r <= 1 ? 0 : r <= 1.35 ? 1 : r <= 1.9 ? 2 : 3;
+      }
+      const pct = Math.min(100, w / SAFE_W * 100);
+      field.querySelector('.meter i').style.width = pct + '%';
+      field.querySelector('.fmsg').textContent = v ? msgs[lvl] : 'Vacío: no se muestra texto';
+      if (lvl === 1 || lvl === 2) field.classList.add('warn');
+      if (lvl === 3) field.classList.add('over');
+      count.textContent = v.length + ' car. · ' + Math.round(w / SAFE_W * 100) + '% del ancho';
+      count.className = 'count' + (lvl === 3 ? ' over' : lvl ? ' warn' : '');
+      return;
+    }
+    const max = +field.dataset.max;
+    if (max) {
+      count.textContent = v.length + '/' + max;
+      const over = v.length > max, near = v.length === max;
+      count.className = 'count' + (over ? ' over' : near ? ' warn' : '');
+      if (over) field.classList.add('over');
+    } else if (k === 'ticker') {
+      const n = v.split('\n').filter(s => s.trim()).length;
+      count.textContent = n + (n === 1 ? ' mensaje' : ' mensajes');
+    }
   }
 
   let t = null;
-  const live = () => { clearTimeout(t); if ($('auto').checked) t = setTimeout(send, 350); };
-  TEXT.forEach(k => $(k).addEventListener('input', () => { S[k] = $(k).value; live(); }));
+  const live = () => { clearTimeout(t); if ($('auto').checked) t = setTimeout(send, 300); };
+  TEXT.forEach(k => $(k).addEventListener('input', () => {
+    S[k] = $(k).value; checkField(k);
+    if (k === 'handle') checkField('nombre');
+    drawPresetsState(); live();
+  }));
   BOOL.forEach(k => $(k).addEventListener('change', () => { S[k] = $(k).checked; send(); }));
-  NUM.forEach(k => $(k).addEventListener('input', () => { S[k] = parseFloat($(k).value); paint(); live(); }));
+  NUM.forEach(k => $(k).addEventListener('input', () => {
+    S[k] = parseFloat($(k).value);
+    if (k === 'escala') { checkField('titular'); checkField('nombre'); }
+    paint(); live();
+  }));
   ['kicker', 'titular', 'nombre', 'handle', 'rol', 'qrL1', 'qrL2', 'qrPie', 'tickerLabel'].forEach(k =>
-    $(k).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }));
+    $(k).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); toast('Zócalo actualizado'); } }));
+
+  document.querySelectorAll('.clr').forEach(b => b.addEventListener('click', () => {
+    const el = b.parentElement.querySelector('input,textarea');
+    el.value = ''; el.dispatchEvent(new Event('input')); el.focus();
+  }));
 
   document.querySelectorAll('.seg[data-k]').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     S[seg.dataset.k] = b.dataset.v; send();
   }));
 
-  $('btnIn').onclick = () => { S.visible = true; send(); };
-  $('btnOut').onclick = () => { S.visible = false; send(); };
-  $('btnSend').onclick = send;
+  /* ================= SALIDA ================= */
+  $('btnIn').onclick = () => setVisible(true);
+  $('btnOut').onclick = () => setVisible(false);
+  $('btnSend').onclick = () => { send(); toast('Zócalo actualizado'); };
+  const typing = () => /^(INPUT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
   addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); }
-    if (e.key === 'F8') { e.preventDefault(); S.visible = !S.visible; send(); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); toast('Zócalo actualizado'); return; }
+    if (e.key === 'F8') { e.preventDefault(); setVisible(!S.visible); return; }
+    if (!typing() && !e.ctrlKey && !e.metaKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+      const p = loadP()[+e.key - 1]; if (p) { e.preventDefault(); firePreset(p); }
+    }
   });
 
-  /* vista previa: fondo */
-  $('bgSeg').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    $('bgSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-    const body = pv.contentDocument && pv.contentDocument.body;
-    if (body) { body.classList.remove('bg-dark', 'bg-light', 'bg-check'); body.classList.add('bg-' + b.dataset.v); }
-  });
+  /* ================= RÁPIDOS ================= */
+  const PFIELDS = ['tema', 'modo', 'kicker', 'titular', 'nombre', 'handle', 'rol', 'escala'];
+  const SEED = [
+    { label: 'Titular principal', tema: 'rojo', modo: 'titular', kicker: 'En vivo desde La Metro', titular: 'Mostrá lo que hacés', nombre: DEF.nombre, handle: DEF.handle, rol: DEF.rol, escala: 1 },
+    { label: 'Invitado 1', tema: 'negro', modo: 'persona', kicker: 'Invitado', titular: DEF.titular, nombre: 'Nombre Apellido', handle: '@usuario', rol: 'Profesión · Proyecto', escala: 1 },
+    { label: 'Inscripciones 2027', tema: 'blanco', modo: 'titular', kicker: 'Inscripciones abiertas', titular: '60% off en tu matrícula 2027', nombre: DEF.nombre, handle: DEF.handle, rol: DEF.rol, escala: 1 }
+  ];
+  function loadP() {
+    const raw = localStorage.getItem(PKEY);
+    if (raw === null) { saveP(SEED); return SEED.slice(); }
+    try { return JSON.parse(raw) || []; } catch { return []; }
+  }
+  function saveP(p) { localStorage.setItem(PKEY, JSON.stringify(p)); }
+  const titleOf = it => it.label || (it.modo === 'persona' ? it.nombre : it.titular);
+  const matches = it => PFIELDS.every(k => it[k] === undefined || it[k] === S[k]);
+  const SWC = { rojo: '#FF1E27', negro: '#3f3f46', blanco: '#FAFAFA' };
 
-  /* guardados */
-  const loadP = () => { try { return JSON.parse(localStorage.getItem(PKEY)) || []; } catch { return []; } };
-  const saveP = p => localStorage.setItem(PKEY, JSON.stringify(p));
-  const SW = { rojo: '#ED1C24', negro: '#111', blanco: '#fff' };
+  function firePreset(it) {
+    const next = {}; PFIELDS.forEach(k => { if (it[k] !== undefined) next[k] = it[k]; });
+    Object.assign(S, next);
+    if (!S.visible) liveSince = Date.now();
+    S.visible = true;
+    fill(); send(); toast('Al aire: ' + titleOf(it));
+  }
   function drawPresets() {
     const p = loadP(), box = $('presets');
-    if (!p.length) { box.innerHTML = '<div class="empty">Todavía no guardaste ninguno.</div>'; return; }
     box.innerHTML = '';
+    if (!p.length) { box.innerHTML = '<div class="empty">Sin rápidos. Armá un zócalo y guardalo abajo.</div>'; return; }
     p.forEach((it, i) => {
-      const el = document.createElement('div'); el.className = 'preset';
-      const title = it.modo === 'persona' ? it.nombre : it.titular;
-      el.innerHTML = `<div class="t"></div><div class="m"><span class="chip" style="background:${SW[it.tema]}"></span>${it.modo} · ${it.tema}</div><button class="x" title="Borrar">×</button>`;
-      el.querySelector('.t').textContent = title;
+      const el = document.createElement('button');
+      el.className = 'preset'; el.dataset.tema = it.tema; el.style.setProperty('--c', SWC[it.tema] || '#fff');
+      el.innerHTML = `<span class="bar"></span><span class="t"></span><span class="n">${i < 9 ? i + 1 : ''}</span><span class="m"></span><span class="x" role="button" aria-label="Borrar rápido" title="Borrar">×</span>`;
+      el.querySelector('.t').textContent = titleOf(it);
+      el.querySelector('.m').textContent = it.modo === 'persona' ? 'Persona: ' + it.nombre : 'Titular: ' + it.titular;
+      el.title = (it.modo === 'persona' ? it.nombre : it.titular) + ' (tema ' + it.tema + ')';
       el.onclick = e => {
-        if (e.target.classList.contains('x')) { const q = loadP(); q.splice(i, 1); saveP(q); drawPresets(); return; }
-        S = Object.assign({}, S, it, { visible: true }); fill(); send(); toast('Al aire: ' + title);
+        if (e.target.classList.contains('x')) {
+          e.stopPropagation(); const q = loadP(); q.splice(i, 1); saveP(q); drawPresets(); toast('Rápido borrado'); return;
+        }
+        firePreset(it);
       };
       box.appendChild(el);
     });
+    drawPresetsState();
+  }
+  function drawPresetsState() {
+    const p = loadP();
+    document.querySelectorAll('.preset').forEach((el, i) => {
+      const on = p[i] && matches(p[i]);
+      el.classList.toggle('on', !!on); el.classList.toggle('live', !!on && !!S.visible);
+    });
   }
   $('btnSave').onclick = () => {
-    const keep = ['tema', 'modo', 'kicker', 'titular', 'nombre', 'handle', 'rol', 'escala'];
-    const it = {}; keep.forEach(k => it[k] = S[k]);
-    const p = loadP(); p.push(it); saveP(p); drawPresets(); toast('Guardado');
+    const it = { label: $('presetName').value.trim() || (S.modo === 'persona' ? S.nombre : S.titular) };
+    PFIELDS.forEach(k => it[k] = S[k]);
+    const p = loadP(); p.push(it); saveP(p); $('presetName').value = ''; drawPresets(); toast('Guardado: ' + it.label);
   };
+  $('presetName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('btnSave').click(); } });
 
-  /* OBS */
-  const base = location.href.split('?')[0].split('#')[0].replace(/control\.html$/i, '');
+  /* ================= VISTA PREVIA ================= */
+  let bg = 'dark';
+  function applyBg() {
+    try {
+      const body = pv.contentDocument && pv.contentDocument.body;
+      if (body) { body.classList.remove('bg-dark', 'bg-light', 'bg-check'); body.classList.add('bg-' + bg); return; }
+    } catch {}
+    pv.src = 'zocalo.html?preview=1&bg=' + bg;
+  }
+  $('bgSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    bg = b.dataset.v; setSeg($('bgSeg'), bg); applyBg();
+  });
+  $('scaleSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    setSeg($('scaleSeg'), b.dataset.v);
+    const vp = $('viewport');
+    vp.classList.toggle('full', b.dataset.v === 'full');
+    if (b.dataset.v === 'full') requestAnimationFrame(() => { vp.scrollTop = vp.scrollHeight; vp.scrollLeft = 0; });
+  });
+  $('guidesOn').addEventListener('change', e => $('viewport').classList.toggle('show-guides', e.target.checked));
+  setSeg($('bgSeg'), 'dark'); setSeg($('scaleSeg'), 'fit');
+
+  /* ================= OBS: URLs ================= */
+  const base = location.href.split('?')[0].split('#')[0].replace(/(control|index)\.html$/i, '');
+  const srcUrl = base + 'zocalo.html';
   $('dockUrl').textContent = base + 'control.html';
+  const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('URL copiada'), () => prompt('Copiá esta URL:', txt));
+  $('copyDock').onclick = () => copy(base + 'control.html');
+  $('copySrc2').onclick = () => copy(srcUrl);
+  $('copySrc2').title = srcUrl;
   if (location.protocol === 'file:') {
     $('srcHow').innerHTML = 'tildá <i>Archivo local</i> y elegí <code>zocalo.html</code>.';
   } else {
-    $('srcHow').innerHTML = 'dejá <i>Archivo local</i> destildado y en URL pegá:<br><code></code> <button class="small" id="copySrc" style="margin-top:6px">Copiar</button><br>';
-    $('srcHow').querySelector('code').textContent = base + 'zocalo.html';
+    $('srcHow').innerHTML = 'dejá <i>Archivo local</i> destildado y en URL pegá:<br><code></code><br><button class="btn" id="copySrc">Copiar URL de la fuente</button><br>';
+    $('srcHow').querySelector('code').textContent = srcUrl;
+    $('copySrc').onclick = () => copy(srcUrl);
   }
-  const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('Copiado'), () => prompt('Copiá esta URL:', txt));
-  $('copyDock').onclick = () => copy(base + 'control.html');
-  if ($('copySrc')) $('copySrc').onclick = () => copy(base + 'zocalo.html');
   $('copyFixed').onclick = () => {
     const q = new URLSearchParams();
     Object.keys(DEF).forEach(k => {
       const v = S[k];
       q.set(k, typeof v === 'boolean' ? (k === 'visible' ? '1' : (v ? '1' : '0')) : k === 'ticker' ? String(v).split('\n').join('|') : v);
     });
-    copy(base + 'zocalo.html?' + q.toString());
+    copy(srcUrl + '?' + q.toString());
   };
 
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1600); }
+  /* ================= SINCRONIZACIÓN CON OBS ================= */
+  const sources = new Map();
+  function onBeat(b) { if (b && b.id) sources.set(b.id, b); }
+  if (bc) bc.addEventListener('message', e => e.data && e.data.beat && onBeat(e.data.beat));
+  addEventListener('storage', e => { if (e.key === BEAT && e.newValue) try { onBeat(JSON.parse(e.newValue)); } catch {} });
+  function syncState() {
+    const now = Date.now();
+    for (const [id, b] of sources) if (now - b.t > 6000) sources.delete(id);
+    const list = [...sources.values()], el = $('sync'), txt = $('syncTxt');
+    el.classList.remove('ok', 'wait');
+    if (!list.length) { txt.textContent = 'Sin señal de OBS'; return; }
+    const mismatch = list.some(b => b.shown !== !!S.visible);
+    if (mismatch) { el.classList.add('wait'); txt.textContent = 'Sincronizando'; return; }
+    el.classList.add('ok');
+    txt.textContent = list.length === 1 ? 'OBS conectado' : `OBS conectado (${list.length} fuentes)`;
+  }
+  if (bc) bc.postMessage({ ping: true });
 
-  fill(); drawPresets();
+  /* ================= RELOJES ================= */
+  const pad = n => String(n).padStart(2, '0');
+  function clocks() {
+    const d = new Date();
+    $('tc').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    if (S.visible && liveSince) {
+      const s = Math.floor((Date.now() - liveSince) / 1000);
+      $('lampTime').textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)} al aire`;
+    } else $('lampTime').textContent = '--:--';
+    syncState();
+  }
+  setInterval(clocks, 1000);
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1700); }
+
+  fill(); drawPresets(); clocks();
   localStorage.setItem(KEY, JSON.stringify(S));
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { checkField('titular'); checkField('nombre'); });
 })();
 </script>
 </body>
