@@ -59,6 +59,8 @@
   .net.ok{color:var(--fg2)}.net.ok i{background:var(--fg);border-color:var(--fg)}
   .net.sending{color:var(--warn)}.net.sending i{background:var(--warn);border-color:var(--warn);animation:blink .6s steps(1) infinite}
   .net.error{color:var(--red)}.net.error i{background:var(--red);border-color:var(--red)}
+  a.lnk{font-family:var(--mono);font-size:12px;color:var(--mute);text-decoration:none;border:1px solid var(--line);height:34px;display:inline-flex;align-items:center;padding:0 12px;background:var(--s2);white-space:nowrap;transition:color .2s,border-color .2s}
+  a.lnk:hover{color:var(--fg);border-color:var(--line2)}
   .gear{width:34px;height:34px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--line);color:var(--mute);padding:0;transition:color .2s,border-color .2s}
   .gear:hover{color:var(--fg);border-color:var(--line2)}
   .gear svg{width:16px;height:16px;fill:currentColor}
@@ -257,6 +259,7 @@
     opacity:0;transition:opacity .25s,transform .35s var(--ease);pointer-events:none;z-index:20}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 
+  @media (max-width:1500px){ .brand span{display:none} .right-meta{gap:12px} }
   @media (max-width:1100px){
     html{overflow:auto}
     body{overflow:auto;height:auto}
@@ -287,6 +290,7 @@
     <div class="net" id="net" title="Estado del envío a la nube (Google Apps Script)"><i></i><span id="netTxt">Modo local</span></div>
     <div class="sync" id="sync" title="Para controlar OBS, abrí este panel como panel acoplado dentro de OBS."><i></i><span id="syncTxt">Buscando OBS</span></div>
     <div class="tc" id="tc">00:00:00</div>
+    <a class="lnk" href="escenas.html" title="Abrir el panel de las escenas de inicio y cierre">Escenas</a>
     <button class="gear help-btn" id="btnHelp" aria-label="Cómo usar el panel" title="Cómo usar el panel">?</button>
     <button class="gear" id="btnCfg" aria-label="Configurar sincronización en red" title="Sincronización en red"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.3 1l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.3 2.3-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.3 2.3-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4H8.7l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.3-2.3 1.8-1.6a6 6 0 010-1.9L2.9 5.8l1.3-2.3 2.3.8c.5-.4 1.1-.7 1.7-.9L8.7 1zM10 7a3 3 0 100 6 3 3 0 000-6z"/></svg></button>
   </div>
