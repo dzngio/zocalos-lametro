@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Escenas · La Metro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#09090B; --s1:#121215; --s2:#18181B; --s3:#1f1f23; --line:#27272A; --line2:#3f3f46;
+    --red:#FF1E27; --fg:#FAFAFA; --fg2:#d4d4d8; --mute:#a1a1aa; --dim:#71717a; --warn:#F5A524;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --sans:"Geist",system-ui,sans-serif; --mono:"Geist Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{overflow:hidden}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;overflow:hidden}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+  kbd{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 5px;border:1px solid currentColor;opacity:.6;line-height:1}
+
+  /* header */
+  .top{display:flex;align-items:center;gap:20px;height:64px;padding:0 20px;background:var(--s1);border-bottom:1px solid var(--line);flex:none}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand svg{height:15px;width:auto;fill:var(--fg)}
+  .brand b{font-weight:800;font-size:17px;letter-spacing:-.02em}
+  .brand span{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .top .sp{flex:1}
+  .net{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+  .net i{width:8px;height:8px;border:1.5px solid var(--dim)}
+  .net.ok{color:var(--fg2)}.net.ok i{background:var(--fg);border-color:var(--fg)}
+  .net.sending{color:var(--warn)}.net.sending i{background:var(--warn);border-color:var(--warn);animation:blink .6s steps(1) infinite}
+  .net.error{color:var(--red)}.net.error i{background:var(--red);border-color:var(--red)}
+  @keyframes blink{50%{opacity:.2}}
+  .tc{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
+  .gear{width:34px;height:34px;display:grid;place-items:center;background:var(--s2);border:1px solid var(--line);color:var(--mute);padding:0;font:700 15px/1 var(--mono)}
+  .gear:hover{color:var(--fg);border-color:var(--line2)}
+  .gear svg{width:16px;height:16px;fill:currentColor}
+  a.lnk{font-family:var(--mono);font-size:12px;color:var(--mute);text-decoration:none;border:1px solid var(--line);height:34px;display:inline-flex;align-items:center;padding:0 12px;background:var(--s2)}
+  a.lnk:hover{color:var(--fg);border-color:var(--line2)}
+
+  /* layout */
+  .wrap{flex:1;min-height:0;display:grid;grid-template-columns:420px 1fr}
+  .side{border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column}
+  .side::-webkit-scrollbar{width:8px}.side::-webkit-scrollbar-thumb{background:var(--line)}
+  .blk{padding:18px 20px 20px;border-bottom:1px solid var(--line)}
+  .blk-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px}
+  .blk-h h2{margin:0;font-size:13px;font-weight:700}
+  .blk-h small{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  .seg{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);background:var(--s1);border:1px solid var(--line);padding:3px;isolation:isolate}
+  .seg::before{content:"";position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--n));background:var(--fg);transform:translateX(calc(var(--i,0) * 100%));transition:transform .32s var(--ease)}
+  .seg button{height:34px;background:none;border:0;font-size:13px;font-weight:600;color:var(--mute);transition:color .25s}
+  .seg button:hover{color:var(--fg)}
+  .seg button.on{color:var(--bg)}
+  .seg.big button{height:44px;font-size:15px;font-weight:800;letter-spacing:-.01em}
+
+  .lbl{display:block;font-family:var(--mono);font-size:11.5px;color:var(--mute);margin:14px 0 6px}
+  .lbl:first-child{margin-top:0}
+  .field{margin-top:12px}
+  .field:first-child{margin-top:0}
+  .field label{display:block;font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-bottom:6px}
+  .field input,.field textarea{width:100%;background:var(--s1);border:1px solid var(--line);padding:10px 12px;font-size:15px;font-weight:500;outline:none;transition:border-color .2s}
+  .field textarea{resize:vertical;min-height:84px;font-size:13.5px;line-height:1.5;display:block}
+  .field textarea.tit{min-height:64px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:-.01em}
+  .field input:focus,.field textarea:focus{border-color:var(--fg)}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:5px}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .g21{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+  .g2 .field,.g21 .field{margin-top:12px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;background:var(--s2);border:1px solid var(--line);font-family:var(--mono);font-size:12px;font-weight:600;color:var(--fg)}
+  .btn:hover{border-color:var(--line2);background:var(--s3)}
+  .btn:active{transform:translateY(1px)}
+  .btn.solid{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .btn.red{background:var(--red);border-color:var(--red);color:#fff}
+  .sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--fg2);user-select:none}
+  .sw input{position:absolute;opacity:0;pointer-events:none}
+  .sw .tr{position:relative;width:32px;height:18px;background:var(--s3);border:1px solid var(--line2);flex:none}
+  .sw .tr::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;background:var(--dim);transition:transform .25s var(--ease)}
+  .sw input:checked+.tr{background:var(--fg);border-color:var(--fg)}
+  .sw input:checked+.tr::after{transform:translateX(14px);background:var(--bg)}
+  input[type=range]{width:100%;accent-color:var(--fg)}
+
+  .timer{border:1px solid var(--line);padding:14px;background:var(--s1);margin-top:14px}
+  .timer .row{display:flex;gap:8px;align-items:end;margin-top:12px}
+  .timer .row .field{flex:1;margin:0}
+  .timer .state{font-family:var(--mono);font-size:12px;color:var(--mute);margin-top:10px;min-height:16px}
+  .timer .state b{color:var(--fg)}
+  .pane{display:none}.pane.on{display:block}
+
+  .bar{position:sticky;bottom:0;margin-top:auto;display:flex;gap:8px;align-items:center;padding:14px 20px;background:var(--s1);border-top:1px solid var(--line)}
+  .bar .sw,.bar .btn{white-space:nowrap}
+  .bar .btn{padding:0 10px}
+  .bar .btn.solid{margin-left:auto}
+
+  /* previews */
+  .stage{display:flex;flex-direction:column;gap:14px;padding:20px 24px;overflow:auto;background:var(--s1);min-width:0}
+  .pv{display:flex;flex-direction:column;gap:8px;width:min(100%, calc((100vh - 64px - 40px - 14px - 80px) / 2 * 16 / 9));margin:0 auto}
+  .pv-h{display:flex;align-items:center;gap:10px}
+  .pv-h b{font-size:13px;font-weight:700}
+  .pv-h .dim{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .pv-h .sp{flex:1}
+  .pv-h .btn{height:28px;padding:0 10px;font-size:11.5px}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;background:#000;outline:1px solid var(--line);overflow:hidden}
+  .frame.sel{outline:2px solid var(--fg)}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+  dialog{width:min(560px,calc(100vw - 32px));background:var(--s1);color:var(--fg);border:1px solid var(--line2);padding:0}
+  dialog::backdrop{background:rgba(0,0,0,.65)}
+  .dh{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .dh h2{margin:0;font-size:15px;font-weight:800}
+  .dh button{background:none;border:0;color:var(--mute);font:500 20px/1 var(--mono)}
+  .db{padding:18px 20px;font-size:13px;line-height:1.55;color:var(--fg2)}
+  .db p{margin:0 0 12px}
+  .db code{font-family:var(--mono);font-size:11.5px;background:var(--s2);border:1px solid var(--line);padding:2px 6px;color:var(--fg);word-break:break-all}
+  .db ol{padding-left:18px;margin:0 0 12px}.db li{margin-bottom:8px}
+  .df{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .df .sp{flex:1}
+  .res{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:10px;min-height:16px}
+  .res.ok{color:var(--fg2)}.res.err{color:var(--red)}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,12px);background:var(--fg);color:var(--bg);padding:10px 14px;font:600 12px var(--mono);opacity:0;transition:opacity .25s,transform .35s var(--ease);pointer-events:none;z-index:20}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:1000px){
+    html{overflow:auto} body{overflow:auto;height:auto}
+    .wrap{grid-template-columns:1fr} .side{border-right:0}
+    .stage{order:-1} .pv{width:100%}
+    .brand span{display:none}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 287.57 62.28" aria-label="la metro"><polygon points="0 0 0 61.01 5.42 61.01 5.42 0 0 0 0 0"/><path d="M185.94,3.6v13.26h-7.42v8.11h7.42v26.03c0,8.82,6.56,10.51,14.12,10.51,2.43,0,5.06-.07,7.13-.42v-9.52c-1.28.28-2.5.35-3.78.35-4.14,0-5.2-.99-5.2-5.08v-21.87h8.99v-8.11h-8.99V3.6h-12.27Z"/><path d="M85.94,15.66c-5.78,0-10.48,2.68-13.62,7.19h-.22v-6h-11.55v44.15h12.27v-25.6c0-8.67,5.85-10.23,8.28-10.23,7.78,0,7.49,5.92,7.49,11.07v24.76h12.19v-24.61c0-5.5,1.28-11.22,8.2-11.22s7.49,4.94,7.49,10.79v25.04h12.27v-29.55c0-11.43-6.85-15.8-16.33-15.8-6.21,0-10.84,3.53-13.41,7.33-2.43-5.29-7.49-7.33-13.05-7.33h0Z"/><path d="M238.92,15.66c-5.92,0-11.98,3.88-14.19,9.38h-.22v-8.18h-11.62v44.15h12.26v-19.96c0-7.76,3.14-14.11,12.13-14.11,1.43,0,3.21.14,4.35.42v-11.28c-.78-.28-1.85-.42-2.71-.42h0Z"/><path d="M155.91,15.66c-13.55,0-22.82,10.09-22.82,23.34s8.77,23.21,22.82,23.21c10.06,0,17.4-4.44,20.9-14.88h-10.84c-.79,2.75-4.71,5.71-9.63,5.71-6.85,0-10.62-3.53-10.98-11.21h32.24c.86-13.54-6.49-26.17-21.68-26.17ZM145.35,34.21c.22-3.46,2.42-9.45,10.2-9.45,5.99,0,8.63,3.24,9.77,9.45h-19.97Z"/><path d="M264.39,15.66c-13.98,0-23.04,9.24-23.04,23.34s9.06,23.21,23.04,23.21,23.18-9.24,23.18-23.21-9.06-23.34-23.18-23.34ZM264.39,53.04c-8.27,0-10.77-7.05-10.77-14.04s2.5-14.18,10.77-14.18,10.92,7.05,10.92,14.18-2.5,14.04-10.92,14.04Z"/><path d="M53.06,56.5c-2.21,0-3.21-1.2-3.21-3.24v-23.42c0-11.78-8.56-14.18-16.4-14.18-10.2,0-17.55,4.44-18.05,14.74h5.42c.21-7.12,5.2-10.23,11.91-10.23s11.7,1.83,11.7,9.03c0,4.87-2.49,5.5-6.99,6-11.77,1.41-23.96,1.83-23.96,14.17,0,8.89,6.78,12.91,14.98,12.91s12.41-3.24,16.19-8.96h.21c0,4.58.86,7.69,6.42,7.69,1.42,0,2.28-.07,3.5-.35v-4.51c-.43.14-1.14.35-1.71.35ZM44.43,43.94c.07,8.61-7.27,13.75-15.55,13.75-5.06,0-9.91-3.24-9.91-8.68,0-8.6,11.41-8.53,20.68-10.16,1.5-.28,3.85-.7,4.57-1.97h.21v7.05Z"/></svg>
+    <b>Escenas</b><span>Inicio y cierre del stream</span>
+  </div>
+  <span class="sp"></span>
+  <div class="net" id="net"><i></i><span id="netTxt">Modo local</span></div>
+  <div class="tc" id="tc">00:00:00</div>
+  <a class="lnk" href="control.html">Panel del zócalo</a>
+  <button class="gear" id="btnHelp" aria-label="Cómo usar" title="Cómo usar">?</button>
+  <button class="gear" id="btnCfg" aria-label="Sincronización en red" title="Sincronización en red"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.3 1l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.3 2.3-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.3 2.3-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4H8.7l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.3-2.3 1.8-1.6a6 6 0 010-1.9L2.9 5.8l1.3-2.3 2.3.8c.5-.4 1.1-.7 1.7-.9L8.7 1zM10 7a3 3 0 100 6 3 3 0 000-6z"/></svg></button>
+</header>
+
+<div class="wrap">
+  <aside class="side">
+    <section class="blk">
+      <div class="seg big" id="tabs" style="--n:2"><button data-v="inicio" class="on">Inicio</button><button data-v="fin">Cierre</button></div>
+    </section>
+
+    <!-- ============ INICIO ============ -->
+    <div class="pane on" id="pane-inicio">
+      <section class="blk">
+        <div class="blk-h"><h2>Textos</h2><small>Enter en el titular = salto de línea</small></div>
+        <div class="field"><label>Volanta</label><input data-k="inicio.volanta"></div>
+        <div class="field"><label>Titular</label><textarea class="tit" rows="2" data-k="inicio.titulo" data-lines></textarea></div>
+        <div class="field"><label>Bajada</label><input data-k="inicio.subtitulo"></div>
+        <div class="g2">
+          <div class="field"><label>Columna: línea 1</label><input data-k="inicio.autor"></div>
+          <div class="field"><label>Columna: línea 2</label><input data-k="inicio.rol"></div>
+        </div>
+      </section>
+      <section class="blk">
+        <div class="blk-h"><h2>Cuenta regresiva</h2></div>
+        <div class="seg" id="timerSeg" style="--n:3"><button data-v="no">Sin cuenta</button><button data-v="min">Minutos</button><button data-v="hasta">Hasta hora</button></div>
+        <div class="timer" id="tmin">
+          <div class="row">
+            <div class="field"><label>Minutos</label><input type="number" min="1" max="180" step="1" data-k="inicio.min" data-num></div>
+            <button class="btn red" id="btnStart">Iniciar cuenta</button>
+          </div>
+          <div class="state" id="minState"></div>
+        </div>
+        <div class="timer" id="thasta">
+          <div class="field" style="margin:0"><label>Empieza a las</label><input type="time" data-k="inicio.hasta"></div>
+          <div class="state" id="hastaState"></div>
+        </div>
+        <div class="timer" id="tno">
+          <div class="field" style="margin:0"><label>Texto de estado</label><input data-k="inicio.estado"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Texto sobre el contador</label><input data-k="inicio.etiquetaTimer"></div>
+          <div class="field"><label>Texto al llegar a cero</label><input data-k="inicio.alTerminar"></div>
+        </div>
+      </section>
+      <section class="blk">
+        <div class="blk-h"><h2>Ticker y fondo</h2></div>
+        <div class="field"><label>Etiqueta del ticker</label><input data-k="inicio.etiqueta"></div>
+        <div class="field"><label>Mensajes, uno por línea</label><textarea data-k="inicio.ticker" data-lines></textarea></div>
+        <div class="field"><label>Texto gigante de fondo</label><input data-k="inicio.fondo"></div>
+      </section>
+    </div>
+
+    <!-- ============ CIERRE ============ -->
+    <div class="pane" id="pane-fin">
+      <section class="blk">
+        <div class="blk-h"><h2>Textos</h2><small>Enter en el titular = salto de línea</small></div>
+        <div class="field"><label>Volanta</label><input data-k="fin.volanta"></div>
+        <div class="field"><label>Titular</label><textarea class="tit" rows="2" data-k="fin.titulo" data-lines></textarea></div>
+        <div class="field"><label>Bajada</label><input data-k="fin.subtitulo"></div>
+        <div class="g2">
+          <div class="field"><label>Columna: línea 1</label><input data-k="fin.autor"></div>
+          <div class="field"><label>Columna: línea 2</label><input data-k="fin.rol"></div>
+        </div>
+        <div class="field"><label>Texto a la derecha (arriba de la hora de fin)</label><input data-k="fin.cierre"></div>
+      </section>
+      <section class="blk">
+        <div class="blk-h"><h2>Redes</h2><small>Vacío = no se muestra</small></div>
+        <div class="g21"><div class="field"><label>Instagram</label><input data-k="fin.ig"></div><div class="field"><label>Etiqueta</label><input data-k="fin.igLabel"></div></div>
+        <div class="g21"><div class="field"><label>Web</label><input data-k="fin.web"></div><div class="field"><label>Etiqueta</label><input data-k="fin.webLabel"></div></div>
+        <div class="g21"><div class="field"><label>Llamado a la acción</label><input data-k="fin.cta"></div><div class="field"><label>Etiqueta</label><input data-k="fin.ctaLabel"></div></div>
+      </section>
+      <section class="blk">
+        <div class="blk-h"><h2>Ticker y fondo</h2></div>
+        <div class="field"><label>Etiqueta del ticker</label><input data-k="fin.etiqueta"></div>
+        <div class="field"><label>Mensajes, uno por línea</label><textarea data-k="fin.ticker" data-lines></textarea></div>
+        <div class="field"><label>Texto gigante de fondo</label><input data-k="fin.fondo"></div>
+      </section>
+    </div>
+
+    <!-- ============ COMÚN ============ -->
+    <section class="blk">
+      <div class="blk-h"><h2>QR (en las dos escenas)</h2></div>
+      <label class="sw" style="margin-bottom:6px"><input type="checkbox" data-k="comun.qr" data-bool><span class="tr"></span>Mostrar QR</label>
+      <div class="g2">
+        <div class="field"><label>Línea chica</label><input data-k="comun.qrL1"></div>
+        <div class="field"><label>Línea grande</label><input data-k="comun.qrL2"></div>
+      </div>
+      <div class="field"><label>Pie</label><input data-k="comun.qrPie"></div>
+      <span class="lbl" style="margin-top:14px">Velocidad del ticker <span id="velV"></span></span>
+      <input type="range" min="30" max="220" step="5" data-k="comun.vel" data-num>
+    </section>
+
+    <div class="bar">
+      <label class="sw"><input type="checkbox" id="auto" checked><span class="tr"></span>En vivo</label>
+      <button class="btn" id="btnReplay" title="Vuelve a animar la entrada de la escena seleccionada">Repetir entrada</button>
+      <button class="btn solid" id="btnSend">Actualizar <kbd>Ctrl ↵</kbd></button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="pv">
+      <div class="pv-h"><b>Inicio</b><span class="dim">inicio.html</span><span class="sp"></span><button class="btn" data-copy="inicio.html">Copiar URL para OBS</button></div>
+      <div class="frame sel" id="fr-inicio"><iframe id="pv-inicio" src="inicio.html?preview=1&v=7" title="Vista previa: inicio"></iframe></div>
+    </div>
+    <div class="pv">
+      <div class="pv-h"><b>Cierre</b><span class="dim">fin.html</span><span class="sp"></span><button class="btn" data-copy="fin.html">Copiar URL para OBS</button></div>
+      <div class="frame" id="fr-fin"><iframe id="pv-fin" src="fin.html?preview=1&v=7" title="Vista previa: cierre"></iframe></div>
+    </div>
+  </main>
+</div>
+
+<dialog id="cfgDlg">
+  <div class="dh"><h2>Sincronización en red</h2><button id="cfgClose" aria-label="Cerrar">×</button></div>
+  <div class="db">
+    <p>La misma URL de Google Apps Script que usa el panel del zócalo. Si ya la configuraste ahí en este navegador, aparece acá sola.</p>
+    <div class="field"><label for="cfgUrl">URL del Web App</label><input id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false"></div>
+    <div class="field"><label for="cfgToken">Clave de escritura (opcional)</label><input id="cfgToken" type="password"></div>
+    <div class="res" id="cfgRes"></div>
+  </div>
+  <div class="df"><button class="btn" id="cfgTest">Probar conexión</button><button class="btn" id="cfgClear">Usar solo modo local</button><span class="sp"></span><button class="btn solid" id="cfgSave">Guardar</button></div>
+</dialog>
+
+<dialog id="helpDlg">
+  <div class="dh"><h2>Cómo usar el panel de escenas</h2><button id="helpClose" aria-label="Cerrar">×</button></div>
+  <div class="db">
+    <ol>
+      <li><b>En OBS</b>, creá una escena para cada pantalla con una fuente <b>Navegador</b> de 1920 × 1080 y la URL de <b>Copiar URL para OBS</b>. Tildá “Actualizar el navegador cuando la escena se active”.</li>
+      <li><b>Este panel</b>: acoplalo en OBS (Paneles → Paneles de navegador personalizados) o, si operás desde otra computadora, configurá la red con el engranaje.</li>
+      <li><b>Editá</b> textos, redes, QR y ticker. Con “En vivo” activado los cambios llegan solos; si no, tocá <b>Actualizar</b>.</li>
+      <li><b>Cuenta regresiva</b>: “Minutos” arranca cuando tocás <b>Iniciar cuenta</b> y no se reinicia si OBS recarga la escena. “Hasta hora” cuenta hasta un horario fijo.</li>
+      <li><b>Repetir entrada</b> vuelve a animar el titular de la escena que estás editando.</li>
+    </ol>
+  </div>
+  <div class="df"><span class="sp"></span><button class="btn solid" id="helpGo">Entendido</button></div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const SKEY = 'lametro-escenas-state', AKEY = 'lametro-zocalo-api', TKEY = 'lametro-zocalo-token', HKEY = 'lametro-escenas-guia-vista';
+  const DEFAULT_API_URL = '';
+  const $ = id => document.getElementById(id);
+  const DEF = {
+    inicio: {
+      volanta: 'En vivo desde La Metro', titulo: 'Ya comenzamos.', subtitulo: 'Quedate, en un momento arrancamos.',
+      autor: 'La Metro', rol: 'Diseño y audiovisual',
+      timerModo: 'no', min: 5, target: null, hasta: '18:30',
+      etiquetaTimer: 'Empezamos en', alTerminar: 'En instantes', estado: 'Preparando señal // en instantes',
+      etiqueta: 'Inscripciones 2027',
+      ticker: 'Inscripciones 2027 escaneando el QR|Carreras: Diseño gráfico · Audiovisual · Fotografía|60% off en tu matrícula|La Metro',
+      fondo: 'La Metro'
+    },
+    fin: {
+      volanta: 'Transmisión finalizada', titulo: 'Gracias por|acompañarnos.', subtitulo: 'Nos vemos en la próxima.',
+      autor: 'La Metro', rol: 'Diseño y audiovisual', cierre: 'Fin de la transmisión',
+      ig: '@lametro', igLabel: 'Instagram', web: 'lametro.edu.ar', webLabel: 'Web',
+      cta: 'Inscripciones ciclo 2027', ctaLabel: '-60% en tu matrícula',
+      etiqueta: 'Hasta la próxima',
+      ticker: 'Gracias por acompañarnos|Inscripciones 2027 abiertas|60% off en tu matrícula escaneando el QR|@lametro|lametro.edu.ar',
+      fondo: 'Gracias'
+    },
+    comun: { qr: '1', qrL1: 'Escaneá e inscribite', qrL2: 'Ciclo 2027', qrPie: '-60%', vel: 90 },
+    replay: {}
+  };
+  const clone = o => JSON.parse(JSON.stringify(o));
+  let S;
+  try {
+    const s = JSON.parse(localStorage.getItem(SKEY)) || {};
+    S = { inicio: Object.assign({}, DEF.inicio, s.inicio), fin: Object.assign({}, DEF.fin, s.fin), comun: Object.assign({}, DEF.comun, s.comun), replay: s.replay || {} };
+  } catch { S = clone(DEF); }
+
+  const getP = path => path.split('.').reduce((o, k) => o && o[k], S);
+  const setP = (path, v) => { const [a, b] = path.split('.'); S[a][b] = v; };
+
+  /* ---------- envío ---------- */
+  let bc = null; try { bc = new BroadcastChannel('lametro-escenas'); } catch {}
+  const frames = { inicio: $('pv-inicio'), fin: $('pv-fin') };
+  function sendLocal() {
+    localStorage.setItem(SKEY, JSON.stringify(S));
+    if (bc) bc.postMessage({ escenas: S });
+    Object.values(frames).forEach(f => f.contentWindow && f.contentWindow.postMessage({ escenas: S }, '*'));
+    paint();
+  }
+  let netT = null;
+  function send() { sendLocal(); clearTimeout(netT); netT = null; pushState(); }
+  Object.values(frames).forEach(f => f.addEventListener('load', () => f.contentWindow.postMessage({ escenas: S }, '*')));
+
+  /* ---------- formulario ---------- */
+  const inputs = [...document.querySelectorAll('[data-k]')];
+  function fill() {
+    inputs.forEach(el => {
+      const v = getP(el.dataset.k);
+      if (el.hasAttribute('data-bool')) el.checked = !(v === '0' || v === false || v === 'false');
+      else if (el.hasAttribute('data-lines')) el.value = String(v ?? '').split('|').join('\n');
+      else el.value = v ?? '';
+    });
+    paint();
+  }
+  let t = null;
+  const live = () => {
+    clearTimeout(t); clearTimeout(netT); netT = null;
+    if (!$('auto').checked) return;
+    t = setTimeout(sendLocal, 300);
+    if (apiUrl) netT = setTimeout(() => { netT = null; pushState(); }, 900);
+  };
+  inputs.forEach(el => {
+    const ev = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      let v;
+      if (el.hasAttribute('data-bool')) v = el.checked ? '1' : '0';
+      else if (el.hasAttribute('data-lines')) v = el.value.split('\n').map(s => s.trim()).filter(Boolean).join('|');
+      else if (el.hasAttribute('data-num')) v = parseFloat(el.value) || 0;
+      else v = el.value;
+      setP(el.dataset.k, v);
+      if (el.type === 'checkbox') send(); else live();
+      paint();
+    });
+    if (el.tagName === 'INPUT' && el.type !== 'checkbox') el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); toast('Escenas actualizadas'); } });
+  });
+
+  /* ---------- pestañas ---------- */
+  let tab = 'inicio';
+  function setSeg(seg, v) {
+    const b = [...seg.querySelectorAll('button')], i = Math.max(0, b.findIndex(x => x.dataset.v === v));
+    seg.style.setProperty('--i', i); b.forEach((x, j) => { x.classList.toggle('on', j === i); x.setAttribute('aria-pressed', j === i); });
+  }
+  $('tabs').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    tab = b.dataset.v; paint();
+  });
+
+  /* ---------- cuenta regresiva ---------- */
+  $('timerSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.inicio.timerModo = b.dataset.v;
+    if (b.dataset.v !== 'min') S.inicio.target = null;
+    send();
+  });
+  $('btnStart').onclick = () => {
+    const m = parseFloat(S.inicio.min) || 5;
+    S.inicio.timerModo = 'min';
+    S.inicio.target = Date.now() + m * 60000;   // hora absoluta: no se reinicia si OBS recarga la escena
+    send(); toast(`Cuenta de ${m} min iniciada`);
+  };
+
+  const pad = n => String(n).padStart(2, '0');
+  function paint() {
+    setSeg($('tabs'), tab);
+    $('pane-inicio').classList.toggle('on', tab === 'inicio');
+    $('pane-fin').classList.toggle('on', tab === 'fin');
+    $('fr-inicio').classList.toggle('sel', tab === 'inicio');
+    $('fr-fin').classList.toggle('sel', tab === 'fin');
+    const modo = S.inicio.timerModo || 'no';
+    setSeg($('timerSeg'), modo);
+    $('tmin').style.display = modo === 'min' ? '' : 'none';
+    $('thasta').style.display = modo === 'hasta' ? '' : 'none';
+    $('tno').style.display = modo === 'no' ? '' : 'none';
+    $('btnStart').textContent = S.inicio.target ? 'Reiniciar cuenta' : 'Iniciar cuenta';
+    $('velV').textContent = S.comun.vel + ' px/s';
+  }
+  function timerState() {
+    const tg = Number(S.inicio.target);
+    if (S.inicio.timerModo === 'min') {
+      if (!tg) $('minState').innerHTML = 'Todavía no arrancó: la escena muestra el estado hasta que toques <b>Iniciar cuenta</b>.';
+      else {
+        const left = Math.max(0, Math.round((tg - Date.now()) / 1000));
+        $('minState').innerHTML = left ? `En pantalla: <b>${pad(Math.floor(left / 60))}:${pad(left % 60)}</b>` : '<b>Llegó a cero.</b>';
+      }
+    }
+    if (S.inicio.timerModo === 'hasta') $('hastaState').innerHTML = /^\d{1,2}:\d{2}$/.test(S.inicio.hasta || '') ? `Cuenta hasta las <b>${S.inicio.hasta} hs</b>` : 'Elegí un horario.';
+  }
+
+  /* ---------- botones ---------- */
+  $('btnSend').onclick = () => { send(); toast('Escenas actualizadas'); };
+  $('btnReplay').onclick = () => { S.replay = Object.assign({}, S.replay, { [tab]: Date.now() }); send(); toast('Entrada repetida: ' + (tab === 'inicio' ? 'inicio' : 'cierre')); };
+  addEventListener('keydown', e => {
+    if (document.querySelector('dialog[open]')) return;
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); toast('Escenas actualizadas'); }
+  });
+  const base = location.href.split('?')[0].split('#')[0].replace(/[^/]*$/, '');
+  const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('URL copiada'), () => prompt('Copiá esta URL:', txt));
+  const sceneUrl = f => base + f + ((apiUrl && apiUrl !== DEFAULT_API_URL) ? '?api=' + encodeURIComponent(apiUrl) : '');
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(sceneUrl(b.dataset.copy)));
+
+  /* ---------- red (Apps Script, canal "escenas") ---------- */
+  let apiUrl = localStorage.getItem(AKEY) || DEFAULT_API_URL;
+  let token = localStorage.getItem(TKEY) || '';
+  let seq = 0, inflight = 0, lastVersion = 0;
+  function setNet(st, detail) {
+    $('net').className = 'net ' + st;
+    $('netTxt').textContent = { local: 'Modo local', sending: 'Enviando…', ok: 'Sincronizado ✓', error: 'Error de red ⚠' }[st];
+    $('net').title = detail || (st === 'local' ? 'Sin URL de Apps Script: funciona acoplado en el mismo OBS' : '');
+  }
+  function fetchT(url, opts, ms = 10000) {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), ms);
+    return fetch(url, Object.assign({ redirect: 'follow', cache: 'no-store', signal: ctl.signal }, opts)).finally(() => clearTimeout(to));
+  }
+  async function pushState(intento = 0) {
+    if (!apiUrl) return;
+    const my = ++seq; inflight++; setNet('sending');
+    try {
+      const j = await (await fetchT(apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ canal: 'escenas', accion: 'ESCENAS', state: S, token, origen: 'panel-escenas' }) })).json();
+      if (!j.ok) throw new Error(j.error || 'Respuesta inválida');
+      if (j.versionId > lastVersion) lastVersion = j.versionId;
+      if (my === seq) setNet('ok', 'Versión ' + j.versionId + ' guardada a las ' + new Date().toLocaleTimeString());
+    } catch (err) {
+      if (my === seq) {
+        if (intento < 3) { setNet('error', err.message + '. Reintento en 3 s.'); setTimeout(() => { if (my === seq) pushState(intento + 1); }, 3000); }
+        else setNet('error', err.message + '. Tocá Actualizar para reintentar.');
+      }
+    } finally { inflight--; }
+  }
+  async function pull(first) {
+    if (!apiUrl) return;
+    try {
+      const j = await (await fetchT(apiUrl + (apiUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + '&canal=escenas&src=panel', {}, 8000)).json();
+      if (!j.ok) throw new Error(j.error || 'Respuesta inválida');
+      const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
+      if (j.state && j.versionId > lastVersion && !netT && !inflight && !typing) {
+        lastVersion = j.versionId;
+        if (JSON.stringify(j.state) !== JSON.stringify(S)) {
+          S = { inicio: Object.assign({}, DEF.inicio, j.state.inicio), fin: Object.assign({}, DEF.fin, j.state.fin), comun: Object.assign({}, DEF.comun, j.state.comun), replay: j.state.replay || {} };
+          fill(); sendLocal(); if (!first) toast('Cambio recibido de otro panel');
+        }
+      }
+      if (first || $('net').classList.contains('error')) setNet('ok', 'Conectado. Versión ' + j.versionId);
+    } catch (err) { if (!inflight) setNet('error', 'No se pudo leer la nube: ' + err.message); }
+  }
+  setInterval(() => pull(false), 5000);
+
+  const cfg = $('cfgDlg');
+  $('btnCfg').onclick = () => { $('cfgUrl').value = apiUrl; $('cfgToken').value = token; $('cfgRes').textContent = ''; cfg.showModal(); };
+  $('cfgClose').onclick = () => cfg.close();
+  $('cfgTest').onclick = async () => {
+    const u = $('cfgUrl').value.trim(), r = $('cfgRes');
+    if (!/^https?:\/\//.test(u)) { r.className = 'res err'; r.textContent = 'Pegá la URL completa del Web App (termina en /exec).'; return; }
+    r.className = 'res'; r.textContent = 'Probando…';
+    try {
+      const j = await (await fetchT(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + '&canal=escenas&src=panel', {}, 10000)).json();
+      if (!j.ok) throw new Error(j.error || 'respuesta inválida');
+      r.className = 'res ok'; r.textContent = `Conexión correcta. Versión de escenas: ${j.versionId}.`;
+    } catch (err) { r.className = 'res err'; r.textContent = 'No responde. Revisá que el Web App esté publicado para "Cualquier usuario". (' + err.message + ')'; }
+  };
+  $('cfgClear').onclick = () => { $('cfgUrl').value = ''; $('cfgSave').click(); };
+  $('cfgSave').onclick = () => {
+    apiUrl = $('cfgUrl').value.trim(); token = $('cfgToken').value;
+    if (apiUrl) localStorage.setItem(AKEY, apiUrl); else localStorage.removeItem(AKEY);
+    if (token) localStorage.setItem(TKEY, token); else localStorage.removeItem(TKEY);
+    cfg.close();
+    if (apiUrl) { setNet('sending'); pull(true); } else setNet('local');
+  };
+
+  /* ---------- guía ---------- */
+  const help = $('helpDlg');
+  $('btnHelp').onclick = () => help.showModal();
+  $('helpClose').onclick = $('helpGo').onclick = () => { help.close(); localStorage.setItem(HKEY, '1'); };
+  if (!localStorage.getItem(HKEY)) help.showModal();
+
+  /* ---------- reloj ---------- */
+  setInterval(() => { const d = new Date(); $('tc').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; timerState(); }, 500);
+
+  function toast(m) { const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 1700); }
+
+  fill();
+  localStorage.setItem(SKEY, JSON.stringify(S));
+  if (apiUrl) { setNet('sending'); pull(true); } else setNet('local');
+})();
+</script>
+</body>
+</html>

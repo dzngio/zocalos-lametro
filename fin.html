@@ -194,11 +194,20 @@
 
 <script>
 (() => {
+  /*
+    Contenido de la escena. Prioridad: parámetros de la URL > panel de escenas (escenas.html) > textos por defecto.
+    El panel llega por: mismo navegador/OBS (BroadcastChannel + localStorage) o red (Google Apps Script, canal "escenas").
+  */
+  const SKEY = 'lametro-escenas-state', AKEY = 'lametro-zocalo-api';
+  // URL del Web App de Apps Script (opcional). También se puede pasar con ?api=...
+  const DEFAULT_API_URL = '';
+  const POLL_MS = 3000;
+
   const P = new URLSearchParams(location.search);
-  const get = (k, d) => (P.has(k) ? P.get(k) : d);
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   const escena = stage.dataset.escena;
+  const isPreview = P.has('preview');
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   /* ---------- escala a la ventana (OBS 1920×1080 → 1) ---------- */
@@ -217,7 +226,7 @@
     subtitulo: 'Quedate, en un momento arrancamos.',
     autor: 'La Metro', rol: 'Diseño y audiovisual',
     etiqueta: 'Inscripciones 2027',
-    ghost: 'La Metro',
+    fondo: 'La Metro',
     ticker: 'Inscripciones 2027 escaneando el QR|Carreras: Diseño gráfico · Audiovisual · Fotografía|60% off en tu matrícula|La Metro'
   } : {
     volanta: 'Transmisión finalizada',
@@ -225,22 +234,38 @@
     subtitulo: 'Nos vemos en la próxima.',
     autor: 'La Metro', rol: 'Diseño y audiovisual',
     etiqueta: 'Hasta la próxima',
-    ghost: 'Gracias',
+    fondo: 'Gracias',
     ticker: 'Gracias por acompañarnos|Inscripciones 2027 abiertas|60% off en tu matrícula escaneando el QR|@lametro|lametro.edu.ar'
   };
 
-  $('volanta').textContent = get('volanta', D.volanta);
-  $('sub').textContent = get('subtitulo', D.subtitulo);
-  $('who').innerHTML = `<span>${esc(get('autor', D.autor))}</span><span class="dim">${esc(get('rol', D.rol))}</span>`;
+  /* ---------- configuración vigente ---------- */
+  const urlCfg = {};
+  for (const [k, v] of P) if (k !== 'preview' && k !== 'bg' && k !== 'api' && k !== 'v') urlCfg[k] = v;
+  const pick = s => Object.assign({}, (s && s.comun) || {}, (s && s[escena]) || {});
+  let panel = {};
+  try { panel = pick(JSON.parse(localStorage.getItem(SKEY))); } catch {}
+  let cfg = {};
+  // Un campo vacío desde el panel queda vacío (ej. ocultar una red); sin dato, usa el texto por defecto.
+  const get = (k, d) => { const v = cfg[k]; return (v === undefined || v === null) ? d : String(v); };
+  const off = v => v === '0' || v === 'false' || v === false;
 
-  // Texto fantasma de fondo (dos copias idénticas → loop exacto)
-  const g = esc(get('fondo', D.ghost));
-  $('ghost').innerHTML = `<span>${g}</span><span>${g}</span><span>${g}</span><span>${g}</span>`;
+  const hl = $('hl'), slot = $('slot');
+  let target = null;
+  const urlTarget = (() => {               // ?min=… se calcula una sola vez al cargar
+    if (P.has('min') && !isNaN(parseFloat(P.get('min')))) return Date.now() + parseFloat(P.get('min')) * 60000;
+    return null;
+  })();
+  const loadTime = new Date();
 
-  /* ---------- titular: líneas con máscara, la última en color de contraste ---------- */
-  const hl = $('hl');
-  const titulo = get('titulo', D.titulo);
-  function fitHeadline() {
+  function horaATarget(hasta) {
+    if (!/^\d{1,2}:\d{2}$/.test(hasta || '')) return null;
+    const [h, m] = hasta.split(':').map(Number), t = new Date(); t.setHours(h, m, 0, 0);
+    if (t.getTime() < Date.now() - 6 * 3600e3) t.setDate(t.getDate() + 1);
+    return t.getTime();
+  }
+
+  /* ---------- titular ---------- */
+  function fitHeadline(titulo) {
     const maxW = 1380, maxH = escena === 'inicio' ? 560 : 400;
     const manual = titulo.includes('|');
     const words = titulo.trim().split(/\s+/);
@@ -260,7 +285,7 @@
         }
         if (cur) lines.push(cur);
       }
-      if (Math.max(...lines.map(w)) <= maxW && lines.length * size * .84 <= maxH) break;
+      if (!lines.length || (Math.max(...lines.map(w)) <= maxW && lines.length * size * .84 <= maxH)) break;
     }
     probe.remove();
     hl.innerHTML = lines.map(l => `<span class="m"><span>${esc(l)}</span></span>`).join('');
@@ -271,9 +296,10 @@
       { duration: 1100, delay: 150 + i * 110, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' }));
   }
   function placeCluster() {
-    const spans = [...hl.querySelectorAll('.m>span')]; if (!spans.length) return;
-    // Medidas de layout (no afectadas por la animación ni por la escala de la ventana)
-    const s = spans[spans.length - 1], m = s.parentElement, c = $('cluster');
+    const spans = [...hl.querySelectorAll('.m>span')], c = $('cluster');
+    if (!spans.length) { c.style.display = 'none'; return; }
+    c.style.display = '';
+    const s = spans[spans.length - 1], m = s.parentElement;
     const size = parseFloat(hl.style.fontSize);
     const end = hl.offsetLeft + s.offsetLeft + s.offsetWidth;
     const prev = spans.length > 1 ? spans[spans.length - 2] : null;
@@ -283,55 +309,17 @@
       c.style.left = (end - 96) + 'px';
       c.style.top = (hl.offsetTop + m.offsetTop - 64 + size * 0.06) + 'px';
     } else if (end + 24 + 96 <= 1450) {
-      // Si arriba no hay lugar: a continuación de la última línea
       c.style.left = (end + 24) + 'px';
       c.style.top = (hl.offsetTop + m.offsetTop + size * 0.14) + 'px';
     } else c.style.display = 'none';
   }
 
-  /* ---------- cuenta regresiva / señal (inicio) · redes (cierre) ---------- */
-  let target = null;
-  const slot = $('slot');
-  if (escena === 'inicio') {
-    const hasta = get('hasta', '');
-    if (P.has('min') && !isNaN(parseFloat(P.get('min')))) target = Date.now() + parseFloat(P.get('min')) * 60000;
-    else if (/^\d{1,2}:\d{2}$/.test(hasta)) {
-      const [h, m] = hasta.split(':').map(Number), t = new Date(); t.setHours(h, m, 0, 0);
-      if (t.getTime() < Date.now() - 6 * 3600e3) t.setDate(t.getDate() + 1);
-      target = t.getTime();
-    }
-    slot.innerHTML = target
-      ? `<div class="count" id="count"><small id="countLbl">${esc(get('etiquetaTimer', 'Empezamos en'))}</small><b id="countNum">00<i>:</i>00</b></div>`
-      : `<div class="count"><small>${esc(get('etiquetaEstado', 'Estado'))}</small><div class="signal"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span><span>${esc(get('estado', 'Preparando señal // en instantes'))}</span></div></div>`;
-  } else {
-    const ICON = {
-      ig: '<svg viewBox="0 0 34 34"><rect x="4" y="4" width="26" height="26"/><circle cx="17" cy="17" r="6"/><path d="M24.5 9.5h.01"/></svg>',
-      web: '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="13"/><path d="M4 17h26M17 4c4 4 5.5 8.5 5.5 13S21 26 17 30M17 4c-4 4-5.5 8.5-5.5 13S13 26 17 30"/></svg>',
-      cta: '<svg viewBox="0 0 34 34"><path d="M5 9h24v16H5zM5 14h24M11 20h6"/></svg>'
-    };
-    const rows = [
-      ['ig', get('ig', '@lametro'), get('igLabel', 'Instagram')],
-      ['web', get('web', 'lametro.edu.ar'), get('webLabel', 'Web')],
-      ['cta', get('cta', 'Inscripciones ciclo 2027'), get('ctaLabel', '-60% en tu matrícula')]
-    ].filter(r => r[1]);
-    $('links').innerHTML = rows.map(([k, t, l]) => `<a>${ICON[k]}<b>${esc(t)}</b><small>${esc(l)}</small></a>`).join('');
-    slot.innerHTML = `<div class="mono2"><span>${esc(get('cierre', 'Fin de la transmisión'))}</span><span class="dim" id="endTime"></span></div>`;
-  }
-
-  /* ---------- QR ---------- */
-  if (get('qr', '1') === '0') $('qr').classList.add('off');
-  if (P.has('qrL1')) $('qrL1').textContent = P.get('qrL1');
-  if (P.has('qrL2')) $('qrL2').textContent = P.get('qrL2');
-  if (P.has('qrPie')) $('qrPie').textContent = P.get('qrPie');
-
   /* ---------- ticker: 2 copias idénticas y -50% → loop exacto ---------- */
-  $('tLabel').textContent = get('etiqueta', D.etiqueta);
-  if (!$('tLabel').textContent) $('tLabel').style.display = 'none';
   function buildTicker() {
-    const items = get('ticker', D.ticker).split('|').map(s => s.trim()).filter(Boolean)
+    const items = get('ticker', D.ticker).split(/\||\n/).map(s => s.trim()).filter(Boolean)
       .map(s => `<span class="item">${esc(s)}</span><i class="sepq"></i>`).join('');
     const track = $('track'), win = $('tWin');
-    track.innerHTML = `<div class="grp">${items}</div>`;
+    track.innerHTML = `<div class="grp">${items || '<span class="item">&nbsp;</span>'}</div>`;
     const grp = track.firstElementChild;
     let guard = 0;
     while (grp.offsetWidth < win.offsetWidth && guard++ < 20) grp.insertAdjacentHTML('beforeend', items);
@@ -339,19 +327,69 @@
     track.style.animationDuration = (grp.offsetWidth / (parseFloat(get('vel', '90')) || 90)) + 's';
   }
 
+  const ICON = {
+    ig: '<svg viewBox="0 0 34 34"><rect x="4" y="4" width="26" height="26"/><circle cx="17" cy="17" r="6"/><path d="M24.5 9.5h.01"/></svg>',
+    web: '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="13"/><path d="M4 17h26M17 4c4 4 5.5 8.5 5.5 13S21 26 17 30M17 4c-4 4-5.5 8.5-5.5 13S13 26 17 30"/></svg>',
+    cta: '<svg viewBox="0 0 34 34"><path d="M5 9h24v16H5zM5 14h24M11 20h6"/></svg>'
+  };
+
+  /* ---------- pinta todo el contenido ---------- */
+  function render() {
+    cfg = Object.assign({}, panel, urlCfg);
+
+    $('volanta').textContent = get('volanta', D.volanta);
+    $('sub').textContent = get('subtitulo', D.subtitulo);
+    $('who').innerHTML = `<span>${esc(get('autor', D.autor))}</span><span class="dim">${esc(get('rol', D.rol))}</span>`;
+    const g = esc(get('fondo', D.fondo));
+    $('ghost').innerHTML = `<span>${g}</span><span>${g}</span><span>${g}</span><span>${g}</span>`;
+
+    fitHeadline(get('titulo', D.titulo).replace(/\n/g, '|'));
+    animateHeadline();
+    requestAnimationFrame(placeCluster);
+
+    if (escena === 'inicio') {
+      // Cuenta regresiva: URL (?min / ?hasta) o panel (timerModo: no | min | hasta)
+      const modo = urlTarget ? 'url' : P.has('hasta') ? 'hasta' : get('timerModo', 'no');
+      target = modo === 'url' ? urlTarget
+        : modo === 'hasta' ? horaATarget(get('hasta', ''))
+        : modo === 'min' && Number(cfg.target) ? Number(cfg.target) : null;
+      slot.innerHTML = target
+        ? `<div class="count" id="count"><small id="countLbl">${esc(get('etiquetaTimer', 'Empezamos en'))}</small><b id="countNum">00<i>:</i>00</b></div>`
+        : `<div class="count"><small>${esc(get('etiquetaEstado', 'Estado'))}</small><div class="signal"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span><span>${esc(get('estado', 'Preparando señal // en instantes'))}</span></div></div>`;
+    } else {
+      const rows = [
+        ['ig', get('ig', '@lametro'), get('igLabel', 'Instagram')],
+        ['web', get('web', 'lametro.edu.ar'), get('webLabel', 'Web')],
+        ['cta', get('cta', 'Inscripciones ciclo 2027'), get('ctaLabel', '-60% en tu matrícula')]
+      ].filter(r => r[1]);
+      $('links').innerHTML = rows.map(([k, t, l]) => `<a>${ICON[k]}<b>${esc(t)}</b><small>${esc(l)}</small></a>`).join('');
+      slot.innerHTML = `<div class="mono2"><span>${esc(get('cierre', 'Fin de la transmisión'))}</span><span class="dim" id="endTime"></span></div>`;
+    }
+
+    $('qr').classList.toggle('off', off(get('qr', '1')));
+    $('qrL1').textContent = get('qrL1', 'Escaneá e inscribite');
+    $('qrL2').textContent = get('qrL2', 'Ciclo 2027');
+    $('qrPie').textContent = get('qrPie', '-60%');
+
+    $('tLabel').textContent = get('etiqueta', D.etiqueta);
+    $('tLabel').style.display = $('tLabel').textContent ? '' : 'none';
+    buildTicker();
+    clock();
+  }
+
   /* ---------- reloj, fecha, timecode, cuenta regresiva ---------- */
   const pad = n => String(n).padStart(2, '0');
   const t0 = performance.now();
-  const loadTime = new Date();
   function clock() {
     const d = new Date();
     $('hh').textContent = pad(d.getHours()); $('mm').textContent = pad(d.getMinutes());
     $('sec').style.width = (d.getSeconds() / 59 * 100) + '%';
     $('date').textContent = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
-    if (target) {
+    if (target && $('countNum')) {
       const left = Math.max(0, Math.round((target - Date.now()) / 1000));
-      const txt = left >= 3600 ? `${Math.floor(left / 3600)}<i>:</i>${pad(Math.floor(left / 60) % 60)}<i>:</i>${pad(left % 60)}` : `${pad(Math.floor(left / 60))}<i>:</i>${pad(left % 60)}`;
-      $('countNum').innerHTML = txt;
+      $('countNum').innerHTML = left >= 3600
+        ? `${Math.floor(left / 3600)}<i>:</i>${pad(Math.floor(left / 60) % 60)}<i>:</i>${pad(left % 60)}`
+        : `${pad(Math.floor(left / 60))}<i>:</i>${pad(left % 60)}`;
       if (left === 0 && !$('count').classList.contains('done')) {
         $('count').classList.add('done');
         $('countLbl').textContent = get('alTerminar', 'En instantes');
@@ -364,11 +402,43 @@
     $('tcode').textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}:${pad(Math.floor((ms % 1000) / 1000 * 60))}`;
     requestAnimationFrame(timecode);
   }
-  clock(); setInterval(clock, 250); requestAnimationFrame(timecode);
+  setInterval(clock, 250); requestAnimationFrame(timecode);
 
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
-    fitHeadline(); animateHeadline(); buildTicker();
-    requestAnimationFrame(placeCluster);
+  /* ---------- escucha al panel ---------- */
+  let started = false, lastKey = '';
+  function onState(s) {
+    if (!s) return;
+    const p = pick(s);
+    const key = JSON.stringify(p) + '|' + ((s.replay && s.replay[escena]) || '');
+    if (key === lastKey) return;          // sin cambios: no se toca nada (no hay parpadeos)
+    lastKey = key; panel = p;
+    if (started) render();
+  }
+  try { const bc = new BroadcastChannel('lametro-escenas'); bc.onmessage = e => e.data && e.data.escenas && onState(e.data.escenas); } catch {}
+  addEventListener('storage', e => { if (e.key === SKEY && e.newValue) try { onState(JSON.parse(e.newValue)); } catch {} });
+  addEventListener('message', e => { if (e.data && e.data.escenas) onState(e.data.escenas); });
+  try { onState(JSON.parse(localStorage.getItem(SKEY))); } catch {}
+
+  // Red: Apps Script, canal "escenas"
+  const API = P.get('api') || DEFAULT_API_URL || (() => { try { return localStorage.getItem(AKEY) || ''; } catch { return ''; } })();
+  const useApi = !!API && !isPreview;
+  let remoteVersion = null, delay = POLL_MS;
+  async function pollOnce() {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const u = API + (API.includes('?') ? '&' : '?') + `t=${Date.now()}&canal=escenas&src=escena`;
+      const j = await (await fetch(u, { cache: 'no-store', redirect: 'follow', signal: ctl.signal })).json();
+      if (j && j.ok && j.state && j.versionId !== remoteVersion) { remoteVersion = j.versionId; onState(j.state); }
+      delay = POLL_MS;
+    } catch { delay = Math.min(delay * 2, 15000); }
+    finally { clearTimeout(to); }
+  }
+  async function pollLoop() { await pollOnce(); setTimeout(pollLoop, delay); }
+
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(async () => {
+    if (useApi) await Promise.race([pollOnce(), new Promise(r => setTimeout(r, 3000))]);
+    started = true; render();
+    if (useApi) setTimeout(pollLoop, delay);
   });
 })();
 </script>
