@@ -10,6 +10,10 @@
  *   control.html  --POST (text/plain, JSON)-->  doPost  -> guarda estado + historial
  *   zocalo.html   --GET cada 1,5 s---------->  doGet   -> devuelve el estado vigente
  *
+ * Canal "escenas" (escenas.html → inicio.html / fin.html): mismo Web App,
+ * con "canal": "escenas" en el POST y ?canal=escenas en el GET. Tiene su propio
+ * estado y su propio versionId; no toca ESTADO_ACTUAL.
+ *
  * Para que sea rápido y no gaste cuota, el estado vigente se guarda en
  * CacheService. La planilla queda como registro visible y como respaldo si
  * la caché se vacía.
@@ -38,6 +42,7 @@ const HEAD_HISTORIAL = [
 const CACHE_ESTADO = 'estado';   // {versionId, timestamp, state}
 const CACHE_BEAT = 'beat';       // último latido de OBS {id, shown, t}
 const CACHE_TTL = 21600;         // 6 h, el máximo de CacheService
+const CACHE_ESCENAS = 'estado_escenas';   // canal de escenas de inicio / cierre
 
 /* ===================== GET: leer estado ===================== */
 
@@ -49,6 +54,15 @@ const CACHE_TTL = 21600;         // 6 h, el máximo de CacheService
 function doGet(e) {
   const p = (e && e.parameter) || {};
   const cache = CacheService.getScriptCache();
+
+  if (p.canal === 'escenas') {
+    let esc = cache.get(CACHE_ESCENAS);
+    if (!esc) {
+      esc = PropertiesService.getScriptProperties().getProperty('escenas');   // respaldo si la caché se vació
+      if (esc) cache.put(CACHE_ESCENAS, esc, CACHE_TTL);
+    }
+    return json_(Object.assign({ ok: true, versionId: 0, timestamp: 0, state: null }, esc ? JSON.parse(esc) : {}, { now: Date.now() }));
+  }
 
   if (p.src === 'obs') {
     cache.put(CACHE_BEAT, JSON.stringify({
@@ -92,6 +106,8 @@ function doPost(e) {
     const s = body.state;
     if (!s || typeof s !== 'object') return json_({ ok: false, error: 'Falta el estado' });
 
+    if (body.canal === 'escenas') return guardarEscenas_(s, body);
+
     const accion = ['ENTRAR', 'SALIR', 'ACTUALIZAR'].indexOf(String(body.accion).toUpperCase()) >= 0
       ? String(body.accion).toUpperCase() : 'ACTUALIZAR';
 
@@ -133,6 +149,28 @@ function doPost(e) {
   }
 }
 
+/* ===================== Canal de escenas ===================== */
+
+function guardarEscenas_(s, body) {
+  const props = PropertiesService.getScriptProperties();
+  const versionId = Number(props.getProperty('versionEscenas') || 0) + 1;
+  props.setProperty('versionEscenas', String(versionId));
+  const ahora = new Date();
+  const registro = JSON.stringify({ versionId: versionId, timestamp: ahora.getTime(), state: s });
+  if (registro.length > 8500) return json_({ ok: false, error: 'Los textos de las escenas son demasiado largos' });
+  CacheService.getScriptCache().put(CACHE_ESCENAS, registro, CACHE_TTL);
+  props.setProperty('escenas', registro);
+
+  const ini = s.inicio || {}, fin = s.fin || {};
+  hoja_(SpreadsheetApp.getActiveSpreadsheet(), SHEET_HISTORIAL, HEAD_HISTORIAL).appendRow([
+    ahora, 'ESCENAS', '', 'escenas', '', txt_(ini.volanta),
+    txt_('Inicio: ' + String(ini.titulo || '').replace(/\|/g, ' ') + ' / Cierre: ' + String(fin.titulo || '').replace(/\|/g, ' ')),
+    txt_(ini.timerModo === 'min' && ini.target ? 'Cuenta hasta ' + new Date(Number(ini.target)).toLocaleTimeString() : ini.timerModo === 'hasta' ? 'Cuenta hasta ' + ini.hasta : ''),
+    '', versionId, txt_(body.origen || 'panel-escenas')
+  ]);
+  return json_({ ok: true, versionId: versionId, timestamp: ahora.getTime() });
+}
+
 /* ===================== Utilidades ===================== */
 
 /** Corré esta función una vez desde el editor para crear las hojas y autorizar el script. */
@@ -144,7 +182,7 @@ function setup() {
 
 /** Borra la caché (si editaste a mano la fila de ESTADO_ACTUAL). */
 function limpiarCache() {
-  CacheService.getScriptCache().removeAll([CACHE_ESTADO, CACHE_BEAT]);
+  CacheService.getScriptCache().removeAll([CACHE_ESTADO, CACHE_BEAT, CACHE_ESCENAS]);
 }
 
 function hoja_(ss, nombre, encabezados) {
