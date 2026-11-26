@@ -414,6 +414,9 @@
       </ol>
       <p>Zócalo fijo sin panel: copiá una URL con el contenido actual y usala como fuente.</p>
       <button class="btn" id="copyFixed">Copiar URL de zócalo fijo</button>
+      <p style="margin-top:16px">Escenas de pantalla completa (fuente Navegador 1920 × 1080 en su propia escena):</p>
+      <button class="btn" id="copyInicio">Copiar URL escena de inicio</button>
+      <button class="btn" id="copyFin">Copiar URL escena de cierre</button>
     </details>
   </aside>
 
@@ -784,6 +787,8 @@
   $('dockUrl').textContent = base + 'control.html';
   const copy = txt => navigator.clipboard.writeText(txt).then(() => toast('URL copiada'), () => prompt('Copiá esta URL:', txt));
   $('copyDock').onclick = () => copy(base + 'control.html');
+  $('copyInicio').onclick = () => copy(base + 'inicio.html');
+  $('copyFin').onclick = () => copy(base + 'fin.html');
   $('copySrc2').onclick = () => copy(obsUrl());
   if (location.protocol === 'file:') {
     $('srcHow').innerHTML = 'tildá <i>Archivo local</i> y elegí <code>zocalo.html</code>.';

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>__TITLE__ · La Metro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /*
+    Escena full-screen 1920×1080 para OBS. Misma grilla que el zócalo:
+    - Márgenes Title Safe: 96 laterales, 60 inferior, 54 superior.
+    - Columna derecha de 300: tarjeta QR arriba + bloque lametro/reloj abajo.
+    - Ticker a lo ancho (alto 72), alineado a la base del bloque reloj.
+    - Grilla de fondo de 120 px (múltiplo de 24): el drift avanza exactamente una celda por ciclo → loop invisible.
+  */
+  :root{
+    --red:#FF1E27; --red-2:#E11D48; --ink:#09090B; --g1:#18181B; --g2:#27272A; --white:#FFFFFF;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --cell:120px;
+  }
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+  #stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;
+    font-family:"Geist",system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--white)}
+  .mono{font-family:"Geist Mono",ui-monospace,monospace}
+
+  /* ---------- VARIANTES ---------- */
+  [data-escena="inicio"]{ --bg:var(--ink); --line:rgba(255,255,255,.06); --line-fine:rgba(255,255,255,.025);
+    --mod-a:var(--red); --mod-b:var(--white); --kick-bg:var(--red); --kick-fg:#fff;
+    --tick-bg:var(--red); --tick-fg:#fff; --sep:#fff; --sub:rgba(255,255,255,.78); --meta:rgba(255,255,255,.5); --scan:rgba(255,30,39,.45) }
+  [data-escena="fin"]{ --bg:var(--red-2); --line:rgba(255,255,255,.13); --line-fine:rgba(255,255,255,.05);
+    --mod-a:var(--ink); --mod-b:var(--white); --kick-bg:var(--ink); --kick-fg:#fff;
+    --tick-bg:var(--ink); --tick-fg:#fff; --sep:var(--red-2); --sub:rgba(255,255,255,.92); --meta:rgba(255,255,255,.72); --scan:rgba(255,255,255,.35) }
+  #stage{background:var(--bg)}
+
+  /* ---------- FONDO: grilla en drift diagonal ---------- */
+  .grid{position:absolute;left:calc(var(--cell) * -1);top:calc(var(--cell) * -1);width:calc(1920px + var(--cell) * 2);height:calc(1080px + var(--cell) * 2);
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px),
+      linear-gradient(var(--line-fine) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line-fine) 1px,transparent 1px);
+    background-size:var(--cell) var(--cell),var(--cell) var(--cell),24px 24px,24px 24px;
+    background-position:96px 54px;
+    will-change:transform;animation:drift 30s linear infinite}
+  @keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--cell),var(--cell),0)}}
+  .scan{position:absolute;left:0;right:0;top:0;height:1px;background:var(--scan);will-change:transform;animation:scan 14s linear infinite}
+  @keyframes scan{from{transform:translate3d(0,-20px,0)}to{transform:translate3d(0,1100px,0)}}
+
+  /* Módulos que respiran, anclados a la grilla de 120 */
+  .mods i{position:absolute;display:block;width:var(--cell);height:var(--cell);will-change:transform,opacity;animation:breathe 9s ease-in-out infinite}
+  .mods i.s{width:60px;height:60px}
+  .mods i.a{background:var(--mod-a)} .mods i.b{background:var(--mod-b)}
+  @keyframes breathe{0%,100%{opacity:0;transform:scale3d(.55,.55,1)}35%,65%{opacity:var(--o,.9);transform:scale3d(1,1,1)}}
+  .mods i.slide{animation:slide 18s cubic-bezier(.77,0,.18,1) infinite}
+  @keyframes slide{0%,12%{transform:translate3d(0,0,0)}38%,62%{transform:translate3d(calc(var(--cell) * 2),0,0)}88%,100%{transform:translate3d(0,0,0)}}
+
+  /* ---------- MARCAS TÉCNICAS ---------- */
+  .meta{position:absolute;top:54px;display:flex;align-items:center;gap:22px;font-family:"Geist Mono",monospace;font-size:16px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--meta)}
+  .meta.l{left:96px}.meta.r{right:96px}
+  .meta b{color:var(--white);font-weight:700}
+  .rec{display:flex;align-items:center;gap:10px;color:var(--white)}
+  .rec i{width:12px;height:12px;border-radius:50%;background:var(--red);animation:blink 1.2s steps(1) infinite}
+  [data-escena="fin"] .rec i{background:var(--white);animation:none}
+  @keyframes blink{50%{opacity:0}}
+  .crop{position:absolute;width:28px;height:28px;border-color:var(--white);border-style:solid;opacity:.55}
+  .crop.tl{left:60px;top:22px;border-width:2px 0 0 2px}
+  .crop.tr{right:60px;top:22px;border-width:2px 2px 0 0}
+
+  /* ---------- HERO ---------- */
+  .hero{position:absolute;left:96px;width:1344px;top:140px;bottom:160px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+  .kick{display:inline-flex;align-items:center;gap:14px;height:52px;padding:0 24px;background:var(--kick-bg);color:var(--kick-fg);
+    font-family:"Geist Mono",monospace;font-size:20px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  .kick .dot{width:12px;height:12px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
+  .kick .sq{width:12px;height:12px;background:#fff}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+  .hl{position:relative;margin:22px 0 0;font-weight:900;text-transform:uppercase;letter-spacing:-.045em;line-height:1;color:var(--ink)}
+  .hl .ln{display:block;width:fit-content;background:var(--white);padding:.06em .14em .02em;white-space:nowrap}
+  .hl .ln+.ln{margin-top:.1em}
+  .sub{margin:26px 0 0;font-size:36px;font-weight:600;letter-spacing:-.015em;line-height:1.25;color:var(--sub);max-width:1100px}
+  .sub:empty{display:none}
+
+  /* estado / cuenta regresiva */
+  .status{margin-top:36px;display:flex;align-items:stretch;gap:0}
+  .count{display:flex;flex-direction:column;justify-content:center;padding:16px 28px 18px;background:var(--red);color:#fff;min-width:360px}
+  [data-escena="fin"] .count{background:var(--ink)}
+  .count small{font-family:"Geist Mono",monospace;font-size:17px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+  .count b{font-family:"Geist Mono",monospace;font-size:118px;font-weight:600;line-height:.95;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:8px}
+  .count.done b{animation:blink 1s steps(1) infinite}
+  .signal{display:flex;align-items:center;gap:22px;height:84px;padding:0 28px;border:1px solid rgba(255,255,255,.22);background:rgba(9,9,11,.55)}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:40px}
+  .bars i{width:9px;height:100%;background:var(--red);transform-origin:bottom;animation:eq 1.2s ease-in-out infinite}
+  .bars i:nth-child(2){animation-delay:-.2s}.bars i:nth-child(3){animation-delay:-.4s}.bars i:nth-child(4){animation-delay:-.6s}.bars i:nth-child(5){animation-delay:-.8s}
+  @keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+  .signal span{font-family:"Geist Mono",monospace;font-size:24px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+
+  /* CTA del cierre */
+  .cta{margin-top:44px;display:flex;gap:8px;flex-wrap:wrap}
+  .cta div{display:flex;align-items:center;gap:16px;height:84px;padding:0 28px;background:var(--ink);color:#fff;font-size:30px;font-weight:700;letter-spacing:-.015em;white-space:nowrap}
+  .cta div.hi{background:var(--white);color:var(--ink)}
+  .cta svg{width:34px;height:34px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:square}
+  .cta div.hi svg{stroke:var(--red-2)}
+
+  /* clúster escalonado (motivo del zócalo) junto al titular */
+  .cluster{position:absolute;width:120px;height:80px}
+  .cluster i{position:absolute;width:40px;height:40px;animation:pop 6s var(--ease) infinite}
+  .cluster i:nth-child(1){left:80px;top:0;background:var(--white)}
+  .cluster i:nth-child(2){left:40px;top:40px;background:var(--red)}
+  .cluster i:nth-child(3){left:0;top:40px;background:var(--white);animation-delay:.15s}
+  .cluster i:nth-child(2){animation-delay:.3s}
+  [data-escena="fin"] .cluster i:nth-child(2){background:var(--ink)}
+  @keyframes pop{0%,8%{transform:scale(1)}14%{transform:scale(0)}22%,100%{transform:scale(1)}}
+
+  /* ---------- COLUMNA DERECHA ---------- */
+  .col{position:absolute;right:96px;width:300px;bottom:60px;display:flex;flex-direction:column;gap:8px}
+  .qr{background:#fff;color:var(--ink)}
+  .qr.off{display:none}
+  .qr-head{padding:20px 28px 14px}
+  .qr-head .l1{display:block;font-family:"Geist Mono",monospace;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red)}
+  .qr-head .l2{display:block;font-size:36px;font-weight:800;letter-spacing:-.035em;line-height:1;margin-top:6px;text-transform:uppercase}
+  .qr-img{position:relative;padding:4px 28px 20px;overflow:hidden}
+  .qr-img img{display:block;width:244px;height:244px}
+  .qr-scan{position:absolute;left:28px;right:28px;top:4px;height:3px;background:var(--red);box-shadow:0 0 16px 2px rgba(255,30,39,.5);will-change:transform,opacity;animation:qrscan 7s ease-in-out infinite}
+  @keyframes qrscan{0%,70%{transform:translate3d(0,0,0);opacity:0}72%{opacity:1}96%{transform:translate3d(0,240px,0);opacity:1}100%{transform:translate3d(0,240px,0);opacity:0}}
+  .qr-foot{height:72px;display:flex;align-items:center;gap:14px;padding:0 24px;background:var(--red);color:#fff}
+  [data-escena="fin"] .qr-foot{background:var(--ink)}
+  .qr-foot b{font-size:40px;font-weight:900;letter-spacing:-.05em;line-height:1}
+  .qr-foot small{font-family:"Geist Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.06em;line-height:1.2;text-transform:uppercase}
+
+  .brand{background:var(--ink);display:flex;flex-direction:column;box-shadow:inset 0 0 0 1px var(--g2)}
+  .brand .logo{height:72px;display:grid;place-items:center;border-bottom:1px solid var(--g2)}
+  .brand .logo svg{width:170px;height:auto;fill:#fff;display:block}
+  .clock{position:relative;height:72px;display:flex;align-items:center;justify-content:center;gap:14px;
+    font-family:"Geist Mono",monospace;font-size:36px;font-weight:600;font-variant-numeric:tabular-nums;color:#fff;line-height:1}
+  .clock .colon{display:flex;flex-direction:column;gap:8px;animation:tick 2s var(--ease) infinite}
+  .clock .colon b{width:6px;height:6px;background:var(--red)}
+  .clock .sec{position:absolute;left:0;bottom:0;height:3px;background:var(--red);width:0;transition:width 1s linear}
+  @keyframes tick{0%,45%{opacity:1}55%,95%{opacity:.25}100%{opacity:1}}
+
+  /* ---------- TICKER ---------- */
+  .ticker{position:absolute;left:96px;right:404px;bottom:60px;height:72px;display:flex;background:var(--tick-bg);color:var(--tick-fg);overflow:hidden}
+  .t-label{flex:none;display:flex;align-items:center;padding:0 24px;background:var(--ink);color:#fff;font-family:"Geist Mono",monospace;font-size:17px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  [data-escena="fin"] .t-label{background:var(--white);color:var(--ink)}
+  .t-win{position:relative;flex:1;overflow:hidden}
+  .track{position:absolute;left:0;top:0;bottom:0;display:flex;will-change:transform;animation:marquee 40s linear infinite}
+  .grp{display:flex;align-items:center;flex:none;height:100%}
+  .item{font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.005em;padding:0 30px;white-space:nowrap;line-height:1}
+  .sepq{width:10px;height:10px;background:var(--sep);flex:none}
+  @keyframes marquee{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+
+  /* ---------- ENTRADA (una sola vez al cargar) ---------- */
+  .in{animation:rise .9s var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translate3d(0,40px,0)}to{opacity:1;transform:none}}
+  .wipe{animation:wipe 1s var(--ease) both}
+  @keyframes wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001s!important;animation-iteration-count:1!important} }
+</style>
+</head>
+<body>
+<div id="stage" data-escena="__ESCENA__">
+  <div class="grid"></div>
+  <div class="mods" id="mods"></div>
+  <div class="scan"></div>
+
+  <i class="crop tl"></i><i class="crop tr"></i>
+  <div class="meta l"><span class="rec"><i></i><b id="recTxt">REC</b></span><span>1080P // 60FPS</span><span id="tcode">00:00:00:00</span></div>
+  <div class="meta r"><span>Córdoba, AR</span><span>31°25′S 64°11′O</span><b id="date"></b></div>
+
+  <section class="hero" id="hero">
+    <div class="kick wipe" id="kick" style="animation-delay:.1s"></div>
+    <h1 class="hl" id="hl"></h1>
+    <p class="sub in" id="sub" style="animation-delay:.45s"></p>
+    <div class="in" id="extra" style="animation-delay:.6s"></div>
+  </section>
+
+  <div class="cluster" id="cluster"><i></i><i></i><i></i></div>
+
+  <div class="col">
+    <div class="qr in" id="qr" style="animation-delay:.3s">
+      <div class="qr-head"><span class="l1" id="qrL1">Escaneá e inscribite</span><span class="l2" id="qrL2">Ciclo 2027</span></div>
+      <div class="qr-img"><img src="__QR__" alt="QR de inscripción 2027"><i class="qr-scan"></i></div>
+      <div class="qr-foot"><b id="qrPie">-60%</b><small>en tu<br>matrícula</small></div>
+    </div>
+    <div class="brand in" style="animation-delay:.2s">
+      <div class="logo">__LOGO__</div>
+      <div class="clock"><span id="hh">00</span><span class="colon" aria-hidden="true"><b></b><b></b></span><span id="mm">00</span><i class="sec" id="sec"></i></div>
+    </div>
+  </div>
+
+  <div class="ticker wipe" style="animation-delay:.25s">
+    <div class="t-label" id="tLabel"></div>
+    <div class="t-win" id="tWin"><div class="track" id="track"></div></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const P = new URLSearchParams(location.search);
+  const get = (k, d) => (P.has(k) ? P.get(k) : d);
+  const $ = id => document.getElementById(id);
+  const stage = $('stage');
+  const escena = stage.dataset.escena;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* ---------- escala a la ventana (OBS: 1920×1080 → 1) ---------- */
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `scale(${s})`;
+    stage.style.left = (innerWidth - 1920 * s) / 2 + 'px';
+    stage.style.top = (innerHeight - 1080 * s) / 2 + 'px';
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- textos por defecto + parámetros ---------- */
+  const D = escena === 'inicio' ? {
+    volanta: 'En vivo desde La Metro',
+    titulo: 'Ya comenzamos',
+    subtitulo: 'Charla abierta de diseño gráfico. Quedate, en un momento arrancamos.',
+    etiqueta: 'Inscripciones 2027',
+    ticker: 'Inscripciones 2027 escaneando el QR|Carreras: Diseño gráfico · Audiovisual · Fotografía|60% off en tu matrícula|La Metro'
+  } : {
+    volanta: 'Transmisión finalizada',
+    titulo: 'Gracias por acompañarnos',
+    subtitulo: 'Nos vemos en la próxima. Las inscripciones al ciclo 2027 siguen abiertas.',
+    etiqueta: 'Hasta la próxima',
+    ticker: 'Gracias por acompañarnos|Inscripciones 2027 abiertas|60% off en tu matrícula escaneando el QR|@lametro|lametro.edu.ar'
+  };
+
+  // Volanta
+  $('kick').innerHTML = (escena === 'inicio' ? '<i class="dot"></i>' : '<i class="sq"></i>') + `<span>${esc(get('volanta', D.volanta))}</span>`;
+
+  // Titular monumental: cada línea en su caja blanca. "|" fuerza salto de línea.
+  const hl = $('hl');
+  const titulo = get('titulo', D.titulo);
+  // Arma las líneas a mano (cada una es un bloque propio, así la caja y el wipe funcionan por línea)
+  // y busca el tamaño más grande que entre en el área del titular.
+  function fitHeadline() {
+    const maxW = 1296, maxH = escena === 'inicio' ? (target ? 340 : 400) : 400;
+    const manual = titulo.includes('|');
+    const words = titulo.trim().split(/\s+/);
+    const probe = document.createElement('span'); probe.className = 'ln'; probe.style.visibility = 'hidden'; probe.style.position = 'absolute';
+    hl.appendChild(probe);
+    const w = t => { probe.textContent = t; return probe.offsetWidth; };
+    let size = 230, lines = [];
+    for (; size >= 56; size -= 4) {
+      hl.style.fontSize = size + 'px';
+      if (manual) lines = titulo.split('|').map(s => s.trim()).filter(Boolean);
+      else {
+        lines = []; let cur = '';
+        for (const word of words) {
+          const test = cur ? cur + ' ' + word : word;
+          if (cur && w(test) > maxW) { lines.push(cur); cur = word; } else cur = test;
+        }
+        if (cur) lines.push(cur);
+      }
+      const widest = Math.max(...lines.map(w));
+      const height = lines.length * size * 1.1;
+      if (widest <= maxW && height <= maxH) break;
+    }
+    probe.remove();
+    hl.innerHTML = lines.map(l => `<span class="ln">${esc(l)}</span>`).join('');
+  }
+  // Entrada del titular: cada línea con wipe escalonado
+  function animateHeadline() {
+    [...hl.querySelectorAll('.ln')].forEach((s, i) => s.animate(
+      [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }],
+      { duration: 900, delay: 200 + i * 120, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' }));
+  }
+
+  const sub = get('subtitulo', D.subtitulo);
+  $('sub').textContent = sub;
+
+  /* ---------- bloque extra: cuenta regresiva / señal / CTA ---------- */
+  const extra = $('extra');
+  let target = null;
+  if (escena === 'inicio') {
+    const hasta = get('hasta', '');
+    if (P.has('min') && !isNaN(parseFloat(P.get('min')))) target = Date.now() + parseFloat(P.get('min')) * 60000;
+    else if (/^\d{1,2}:\d{2}$/.test(hasta)) {
+      const [h, m] = hasta.split(':').map(Number), t = new Date(); t.setHours(h, m, 0, 0);
+      if (t.getTime() < Date.now() - 6 * 3600e3) t.setDate(t.getDate() + 1);
+      target = t.getTime();
+    }
+    if (target) {
+      extra.className += ' status';
+      extra.innerHTML = `<div class="count" id="count"><small id="countLbl">${esc(get('etiquetaTimer', 'Empezamos en'))}</small><b id="countNum">00:00</b></div>`;
+    } else {
+      extra.className += ' status';
+      extra.innerHTML = `<div class="signal"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span><span>${esc(get('estado', 'Preparando señal // en instantes'))}</span></div>`;
+    }
+  } else {
+    const ICON = {
+      ig: '<svg viewBox="0 0 34 34"><rect x="4" y="4" width="26" height="26"/><circle cx="17" cy="17" r="6"/><path d="M24.5 9.5h.01"/></svg>',
+      web: '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="13"/><path d="M4 17h26M17 4c4 4 5.5 8.5 5.5 13S21 26 17 30M17 4c-4 4-5.5 8.5-5.5 13S13 26 17 30"/></svg>',
+      cta: '<svg viewBox="0 0 34 34"><path d="M5 9h24v16H5zM5 14h24M11 20h6"/></svg>'
+    };
+    const ig = get('ig', '@lametro'), web = get('web', 'lametro.edu.ar'), cta = get('cta', 'Inscripciones abiertas ciclo 2027');
+    extra.className += ' cta';
+    extra.innerHTML = [
+      ig && `<div>${ICON.ig}<span>${esc(ig)}</span></div>`,
+      web && `<div>${ICON.web}<span>${esc(web)}</span></div>`,
+      cta && `<div class="hi">${ICON.cta}<span>${esc(cta)}</span></div>`
+    ].filter(Boolean).join('');
+  }
+
+  /* ---------- QR ---------- */
+  if (get('qr', '1') === '0') $('qr').classList.add('off');
+  if (P.has('qrL1')) $('qrL1').textContent = P.get('qrL1');
+  if (P.has('qrL2')) $('qrL2').textContent = P.get('qrL2');
+  if (P.has('qrPie')) $('qrPie').textContent = P.get('qrPie');
+
+  /* ---------- ticker: loop exacto con 2 copias idénticas y -50% ---------- */
+  $('tLabel').textContent = get('etiqueta', D.etiqueta);
+  if (!$('tLabel').textContent) $('tLabel').style.display = 'none';
+  function buildTicker() {
+    const items = get('ticker', D.ticker).split('|').map(s => s.trim()).filter(Boolean)
+      .map(s => `<span class="item">${esc(s)}</span><i class="sepq"></i>`).join('');
+    const track = $('track'), win = $('tWin');
+    track.innerHTML = `<div class="grp">${items}</div>`;
+    const g = track.firstElementChild;
+    let guard = 0;
+    while (g.offsetWidth < win.offsetWidth && guard++ < 20) g.insertAdjacentHTML('beforeend', items);
+    track.appendChild(g.cloneNode(true));
+    const speed = parseFloat(get('vel', '90')) || 90;                 // px por segundo
+    track.style.animationDuration = (g.offsetWidth / speed) + 's';
+  }
+
+  /* ---------- módulos de fondo sobre la grilla de 120 ---------- */
+  // [columna, fila, clase, opacidad, delay] (origen en 96,54 = esquina de Title Safe)
+  // Zona libre: columnas 11–13, filas 1–2 (entre las marcas superiores, el titular y la tarjeta QR).
+  const MODS = [[11, 1, 'a', .9, 0], [12, 2, 'b s', .9, 1.5], [13, 1, 'a s', .6, 3], [13, 2, 'a', .35, 4.5], [11, 2, 'b s', .45, 6]];
+  $('mods').innerHTML = MODS.map(([c, r, cls, o, d]) =>
+    `<i class="${cls}" style="left:${96 + c * 120}px;top:${54 + r * 120}px;--o:${o};animation-delay:-${d}s"></i>`).join('')
+    + `<i class="a s slide" style="left:${96 + 11 * 120}px;top:${54 + 3 * 120 - 60}px;opacity:.5"></i>`;
+
+  /* ---------- reloj, fecha y timecode ---------- */
+  const pad = n => String(n).padStart(2, '0');
+  const t0 = performance.now();
+  function clock() {
+    const d = new Date();
+    $('hh').textContent = pad(d.getHours()); $('mm').textContent = pad(d.getMinutes());
+    $('sec').style.width = (d.getSeconds() / 59 * 100) + '%';
+    $('date').textContent = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    if (target) {
+      const left = Math.max(0, Math.round((target - Date.now()) / 1000));
+      $('countNum').textContent = left >= 3600 ? `${Math.floor(left / 3600)}:${pad(Math.floor(left / 60) % 60)}:${pad(left % 60)}` : `${pad(Math.floor(left / 60))}:${pad(left % 60)}`;
+      if (left === 0 && !$('count').classList.contains('done')) {
+        $('count').classList.add('done');
+        $('countLbl').textContent = get('alTerminar', 'En instantes');
+      }
+    }
+  }
+  function timecode(now) {   // HH:MM:SS:FF desde que se abrió la escena (60 fps)
+    const ms = now - t0, s = Math.floor(ms / 1000);
+    $('tcode').textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}:${pad(Math.floor((ms % 1000) / 1000 * 60))}`;
+    requestAnimationFrame(timecode);
+  }
+  clock(); setInterval(clock, 250); requestAnimationFrame(timecode);
+  if (escena === 'fin') $('recTxt').textContent = 'FIN';
+
+  /* ---------- clúster junto al titular ---------- */
+  function placeCluster() {
+    const spans = [...hl.querySelectorAll('span')]; if (!spans.length) return;
+    const k = stage.getBoundingClientRect().width / 1920, st = stage.getBoundingClientRect();
+    const r = spans.reduce((a, s) => s.offsetWidth > a.offsetWidth ? s : a).getBoundingClientRect();   // la línea más larga
+    const c = $('cluster');
+    // Apoyado sobre el final de la primera línea, como los cuadrados sobre el logo en el zócalo
+    c.style.left = ((r.right - st.left) / k - 120) + 'px';
+    c.style.top = ((r.top - st.top) / k - 80) + 'px';
+  }
+
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+    fitHeadline(); animateHeadline(); buildTicker(); placeCluster();
+  });
+})();
+</script>
+</body>
+</html>
