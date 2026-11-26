@@ -437,7 +437,7 @@
     <div class="canvas">
       <div class="viewport show-guides" id="viewport">
         <div class="frame" id="frame">
-          <iframe id="pv" src="zocalo.html?preview=1&bg=dark" title="Vista previa del zócalo"></iframe>
+          <iframe id="pv" src="zocalo.html?preview=1&bg=dark&v=5" title="Vista previa del zócalo"></iframe>
           <div class="guides" aria-hidden="true">
             <i class="g-third" style="left:33.333%"></i><i class="g-third" style="left:66.666%"></i>
             <div class="g g-action"><span>Action safe 93%</span></div>
@@ -760,7 +760,7 @@
       const body = pv.contentDocument && pv.contentDocument.body;
       if (body) { body.classList.remove('bg-dark', 'bg-light', 'bg-check'); body.classList.add('bg-' + bg); return; }
     } catch {}
-    pv.src = 'zocalo.html?preview=1&bg=' + bg;
+    pv.src = 'zocalo.html?preview=1&v=5&bg=' + bg;   // v= evita que el navegador use una versión vieja en caché
   }
   $('bgSeg').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
